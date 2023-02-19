@@ -1,0 +1,16 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.8.0'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.8.0'
+    id 'net.mamoe.mirai-console' version '2.13.4'
+}
+
+group 'given'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.alibaba.fastjson2:fastjson2:2.0.23'
+}
