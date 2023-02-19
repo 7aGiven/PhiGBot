@@ -1,7 +1,6 @@
 import net.mamoe.mirai.console.command.*;
 import net.mamoe.mirai.console.command.java.JCompositeCommand;
 import net.mamoe.mirai.contact.Group;
-import net.mamoe.mirai.contact.Member;
 import net.mamoe.mirai.message.data.*;
 import net.mamoe.mirai.utils.ExternalResource;
 

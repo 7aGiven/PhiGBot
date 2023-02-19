@@ -1,4 +1,3 @@
-import net.mamoe.mirai.console.command.CommandContext;
 import net.mamoe.mirai.console.command.CommandManager;
 import net.mamoe.mirai.console.command.CommandSender;
 import net.mamoe.mirai.console.command.OtherClientCommandSenderOnMessageSync;
