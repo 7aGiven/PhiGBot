@@ -84,77 +84,7 @@ public class SaveManagement {
         HttpResponse<String> res = client.send(builder.build(),handler);
         System.out.println(res.body());
     }
-    public static byte[] modifySong(String zipUrl,String name,int level,int s,float a,boolean fc) throws Exception {
-        return modify(zipUrl,"gameRecord", data -> {
-            boolean exist = false;
-            Score score = new Score(data);
-            for (String id:score) {
-                if (name.equals(id)) {
-                    Song song = score.getSong();
-                    if (song.get(level).score == 0) {
-                        return null;
-                    }
-                    score.modifySong(level,s,a,fc);
-                    data = score.getData();
-                    exist = true;
-                    break;
-                }
-            }
-            if (!exist) {
-                return null;
-            }
-            return data;
-        });
-    }
-    public static byte[] addAvater(String zipUrl,String avater) throws Exception {
-        return modify(zipUrl,"gameKey", data -> {
-            GameKey gameKey = new GameKey(data);
-            boolean exist = false;
-            for (String key:gameKey) {
-                if (key.equals(avater)) {
-                    exist = true;
-                    data = gameKey.getKey();
-                    if (data[4] == 1) {
-                        return null;
-                    }
-                    data = gameKey.modifyAvater();
-                    break;
-                }
-            }
-            if (!exist) {
-                data = gameKey.addAvater(avater.getBytes());
-            }
-            return data;
-        });
-    }
-    public static byte[] addCollection(String zipUrl,String collection) throws Exception {
-        return modify(zipUrl,"gameKey", data -> {
-            GameKey gameKey = new GameKey(data);
-            boolean exist = false;
-            for (String key:gameKey) {
-                if (key.equals(collection)) {
-                    exist = true;
-                    data = gameKey.modifyCollection();
-                    break;
-                }
-            }
-            if (!exist) {
-                data = gameKey.addCollection(collection.getBytes());
-            }
-            return data;
-        });
-    }
-    public static byte[] challenge(String zipUrl,short score) throws Exception {
-        return modify(zipUrl,"gameProgress", data -> {
-            ByteBuffer byteBuffer = ByteBuffer.wrap(new byte[2]);
-            byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-            byteBuffer.putShort(score);
-            byteBuffer.position(0);
-            byteBuffer.get(data,6,2);
-            return data;
-        });
-    }
-    public static byte[] modify(String zipUrl,String type,ModifyCallback callback) throws Exception {
+    public static byte[] modify(String zipUrl, String type, ModifyStrategy callback) throws Exception {
         HttpRequest request = HttpRequest.newBuilder(new URI(zipUrl)).build();
         byte[] data = client.send(request,HttpResponse.BodyHandlers.ofByteArray()).body();
         try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data)) {

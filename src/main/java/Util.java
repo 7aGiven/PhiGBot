@@ -1,41 +1,40 @@
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.function.Consumer;
+import java.util.Map;
 import java.util.stream.Stream;
 
 public class Util {
-    public static void readUser() {
+    private static MyUser myUser;
+    public static HashMap<Long, MyUser> readUser() {
         HashMap<Long, MyUser> users = new HashMap<>();
-        try (FileReader fileReader = new FileReader(MyPlugin.INSTANCE.resolveDataFile("user.csv"))) {
-            try (BufferedReader reader = new BufferedReader(fileReader) ) {
-                String lineStr;
-                String[] line;
-                MyUser myUser;
-                while ((lineStr = reader.readLine()) != null) {
-                    line = lineStr.split(",");
-                    myUser = new MyUser();
-                    myUser.session = line[1];
-                    myUser.zipUrl = line[2];
-                    users.put(Long.valueOf(line[0]), myUser);
-                }
-            }
-        } catch (Exception e) {}
-        MyCompositeCommand.INSTANCE.users = users;
+        try (Stream<String> stream = Files.lines(MyPlugin.INSTANCE.resolveDataFile("user.csv").toPath())) {
+            stream.forEach(s -> {
+                String[] line = s.split(",");
+                myUser = new MyUser();
+                myUser.session = line[1];
+                myUser.zipUrl = line[2];
+                users.put(Long.valueOf(line[0]), myUser);
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return users;
     }
     public static void writeUser() {
-        try (FileWriter writer = new FileWriter(MyPlugin.INSTANCE.resolveDataFile("user.csv"))) {
-            HashMap<Long, MyUser> users = MyCompositeCommand.INSTANCE.users;
-            for (Long key:users.keySet()) {
-                MyUser myUser = users.get(key);
-                writer.write(String.format("%d,%s,%s\n",key, myUser.session, myUser.zipUrl));
-            }
-        } catch (Exception e) {}
+        StringBuilder builder = new StringBuilder();
+        for (Map.Entry<Long,MyUser> entry:SenderFacade.users.entrySet()) {
+            builder.append(String.format("%d,%s,%s\n",entry.getKey(),entry.getValue().session, entry.getValue().zipUrl));
+        }
+        try {
+            Files.writeString(MyPlugin.INSTANCE.resolveDataFile("user.csv").toPath(),builder.toString(), StandardOpenOption.WRITE);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-    public static void readLevel() {
+    public static HashMap<String,SongInfo> readLevel() {
         HashMap<String,SongInfo> level = new HashMap<>();
         try (Stream<String> stream = Files.lines(MyPlugin.INSTANCE.resolveDataFile("info.csv").toPath())) {
             stream.forEach(s -> {
@@ -50,6 +49,6 @@ public class Util {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        B19.info = level;
+        return level;
     }
 }

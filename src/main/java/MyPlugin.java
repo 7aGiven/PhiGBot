@@ -16,11 +16,9 @@ public final class MyPlugin extends JavaPlugin {
     public void onEnable() {
         super.onEnable();
         getLogger().error("启动");
-        Util.readUser();
-        Util.readLevel();
         CommandManager.INSTANCE.registerCommand(MyCompositeCommand.INSTANCE,true);
-        CommandManager.INSTANCE.registerCommand(new TestPhigrosCommand(),true);
-        CommandManager.INSTANCE.registerCommand(new TestCommand(),true);
+        CommandManager.INSTANCE.registerCommand(TestPhigrosCommand.INSTANCE,true);
+        CommandManager.INSTANCE.registerCommand(TestCommand.INSTANCE,true);
         //入群申请
         joinlistener = GlobalEventChannel.INSTANCE.filterIsInstance(MemberJoinRequestEvent.class).subscribeAlways(MemberJoinRequestEvent.class, event->{
             event.getGroup().sendMessage("新成员来了，快去审核。");

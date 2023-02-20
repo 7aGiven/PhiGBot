@@ -1,4 +1,3 @@
-import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.message.data.ForwardMessage;
 import net.mamoe.mirai.message.data.ForwardMessageBuilder;
@@ -11,10 +10,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class B19 {
-    static HashMap<String,SongInfo> info;
-    static final String[] levels = new String[]{"EZ","HD","IN","AT"};
+    public static HashMap<String,SongInfo> info = Util.readLevel();
+    public static final String[] levels = new String[]{"EZ","HD","IN","AT"};
+    private static final ReentrantLock lock = new ReentrantLock();
     private SongLevel[] b19 = new SongLevel[19];
     private SongLevel phi = new SongLevel();
     B19(byte[] data) {
@@ -76,17 +77,20 @@ public class B19 {
             x = String.format("'%s.0.Record.%s':{'s':%s,'a':%s,'c':%s},",songLevel.id,levels[songLevel.level],songLevel.score,songLevel.acc,songLevel.fc?1:0);
             builder.append(x);
         }
-        x = String.format("'%s.0.Record.%s':{'s':%s,'a':%s,'c':%s},",phi.id,levels[phi.level],phi.score,phi.acc,phi.fc?1:0);
-        builder.append(x);
-        builder.append('}');
-        python(builder.toString());
-    }
-    private synchronized static void python(String dict) throws Exception {
-        try (FileWriter writer = new FileWriter(MyPlugin.INSTANCE.resolveDataFile("../../../rks-calc-1.1.1/score.dict"))) {
-            writer.write(dict);
+        if (phi.score == 1000000) {
+            builder.append(String.format("'%s.0.Record.%s':{'s':%s,'a':%s,'c':%s},",phi.id,levels[phi.level],phi.score,phi.acc,phi.fc?1:0));
         }
-        Process p = Runtime.getRuntime().exec("python3 " + MyPlugin.INSTANCE.resolveDataFile("../../../rks-calc-1.1.1/xx.py").getAbsolutePath());
-        p.waitFor();
+        builder.append('}');
+        lock.lock();
+        try {
+            try (FileWriter writer = new FileWriter(MyPlugin.INSTANCE.resolveDataFile("../../../rks-calc-1.1.1/score.dict"))) {
+                writer.write(builder.toString());
+            }
+            Process p = Runtime.getRuntime().exec("python3 " + MyPlugin.INSTANCE.resolveDataFile("../../../rks-calc-1.1.1/xx.py").getAbsolutePath());
+            p.waitFor();
+        } finally {
+            lock.unlock();
+        }
     }
     public ForwardMessage expectCalc(User user, byte[] data) {
         double min = b19[0].rks;

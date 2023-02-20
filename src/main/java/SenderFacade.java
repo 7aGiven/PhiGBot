@@ -10,23 +10,40 @@ import net.mamoe.mirai.message.data.QuoteReply;
 import net.mamoe.mirai.utils.ExternalResource;
 
 import java.io.IOException;
+import java.util.HashMap;
 
-public class Sender {
-    QuoteReply quoteReply;
+public class SenderFacade {
+    public static HashMap<Long, MyUser> users = Util.readUser();
+    private QuoteReply quoteReply;
     Contact subject;
     User user;
-    public Sender(CommandContext context) {
+    MyUser myUser;
+    public static SenderFacade getInstance(CommandContext context) {
+        return getInstance(context,true);
+    }
+    public static SenderFacade getInstance(CommandContext context,boolean b) {
+        SenderFacade senderFacade = new SenderFacade();
         if (context.getOriginalMessage().contains(MessageSource.Key)) {
-            quoteReply = new QuoteReply(context.getOriginalMessage());
+            senderFacade.quoteReply = new QuoteReply(context.getOriginalMessage());
         }
         CommandSender sender = context.getSender();
-        user = sender.getUser();
-        System.out.println(user);
-        if (sender instanceof OtherClientCommandSender) {
-            subject = ((OtherClientCommandSenderOnMessageSync) sender).getFromEvent().getSubject();
-        } else {
-            subject = sender.getSubject();
+        senderFacade.user = sender.getUser();
+        if (b) {
+            senderFacade.myUser = users.get(senderFacade.user.getId());
+            if (senderFacade.myUser == null) {
+                senderFacade.sendMessage("您尚未绑定SessionToken");
+                return null;
+            }
         }
+        if (sender instanceof OtherClientCommandSender) {
+            senderFacade.subject = ((OtherClientCommandSenderOnMessageSync) sender).getFromEvent().getSubject();
+        } else {
+            senderFacade.subject = sender.getSubject();
+        }
+        return senderFacade;
+    }
+    public void putUser(MyUser myUser) {
+        users.put(user.getId(),myUser);
     }
     public void sendMessage(String message) {
         if (quoteReply == null) {

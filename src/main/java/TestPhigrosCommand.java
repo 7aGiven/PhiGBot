@@ -8,7 +8,8 @@ import net.mamoe.mirai.message.data.Image;
 import net.mamoe.mirai.utils.ExternalResource;
 
 public class TestPhigrosCommand extends JCompositeCommand {
-    public TestPhigrosCommand() {
+    public static final TestPhigrosCommand INSTANCE = new TestPhigrosCommand();
+    private TestPhigrosCommand() {
         super(MyPlugin.INSTANCE,"tp");
     }
     @SubCommand
@@ -38,7 +39,7 @@ public class TestPhigrosCommand extends JCompositeCommand {
         SaveManagement.delete(user.session,objectId);
     }
     private MyUser getUser(CommandSender sender) {
-        MyUser user = MyCompositeCommand.INSTANCE.users.get(sender.getUser().getId());
+        MyUser user = SenderFacade.users.get(sender.getUser().getId());
         if (user == null) {
             sender.sendMessage("您尚未绑定SessionToken");
         }

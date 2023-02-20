@@ -10,7 +10,8 @@ import net.mamoe.mirai.message.data.SingleMessage;
 import org.jetbrains.annotations.NotNull;
 
 public final class TestCommand extends JRawCommand {
-    public TestCommand() {
+    public static final TestCommand INSTANCE = new TestCommand();
+    private TestCommand() {
         super(MyPlugin.INSTANCE,"test");
     }
 
