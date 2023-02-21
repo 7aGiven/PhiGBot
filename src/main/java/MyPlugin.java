@@ -31,12 +31,12 @@ public final class MyPlugin extends JavaPlugin {
             event.getGroup().sendMessage("新成员来了，快去审核。");
         });
         //戳一戳
-        channel.subscribeAlways(NudgeEvent.class, event -> {
-            if (event.getFrom() instanceof Member) {
-                CommandSender sender = CommandSender.of((Member) event.getFrom());
-                CommandManager.INSTANCE.executeCommand(sender,new PlainText("/help"),true);
-            }
-        });
+        channel.filterIsInstance(NudgeEvent.class)
+                .filter(event -> event.getTarget().getId() == event.getBot().getId() && event.getFrom() instanceof Member)
+                .subscribeAlways(NudgeEvent.class, event -> {
+                    CommandSender sender = CommandSender.of((Member) event.getFrom());
+                    CommandManager.INSTANCE.executeCommand(sender,new PlainText("/help"),true);
+                });
     }
     @Override
     public void onDisable() {
