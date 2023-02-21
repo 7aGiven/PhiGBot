@@ -22,25 +22,30 @@ public class SenderFacade {
         return getInstance(context,true);
     }
     public static SenderFacade getInstance(CommandContext context,boolean b) {
-        SenderFacade senderFacade = new SenderFacade();
-        if (context.getOriginalMessage().contains(MessageSource.Key)) {
-            senderFacade.quoteReply = new QuoteReply(context.getOriginalMessage());
-        }
-        CommandSender sender = context.getSender();
-        senderFacade.user = sender.getUser();
-        if (b) {
-            senderFacade.myUser = users.get(senderFacade.user.getId());
-            if (senderFacade.myUser == null) {
-                senderFacade.sendMessage("您尚未绑定SessionToken");
-                return null;
+        try {
+            SenderFacade senderFacade = new SenderFacade();
+            if (context.getOriginalMessage().contains(MessageSource.Key)) {
+                senderFacade.quoteReply = new QuoteReply(context.getOriginalMessage());
             }
+            CommandSender sender = context.getSender();
+            senderFacade.user = sender.getUser();
+            if (b) {
+                senderFacade.myUser = users.get(senderFacade.user.getId());
+                if (senderFacade.myUser == null) {
+                    senderFacade.sendMessage("您尚未绑定SessionToken");
+                    return null;
+                }
+            }
+            if (sender instanceof OtherClientCommandSender) {
+                senderFacade.subject = ((OtherClientCommandSenderOnMessageSync) sender).getFromEvent().getSubject();
+            } else {
+                senderFacade.subject = sender.getSubject();
+            }
+            return senderFacade;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
-        if (sender instanceof OtherClientCommandSender) {
-            senderFacade.subject = ((OtherClientCommandSenderOnMessageSync) sender).getFromEvent().getSubject();
-        } else {
-            senderFacade.subject = sender.getSubject();
-        }
-        return senderFacade;
     }
     public void putUser(MyUser myUser) {
         users.put(user.getId(),myUser);
