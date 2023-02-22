@@ -13,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Base64;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -104,16 +105,48 @@ public final class MyCompositeCommand extends JCompositeCommand {
         SenderFacade sender = SenderFacade.getInstance(context);
         if (sender == null) return;
         try {
-            StringBuilder builder = new StringBuilder();
-            Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d",sender.user.getId())).toPath();
-            if (!Files.isDirectory(path)) {
+            Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d.zip",sender.user.getId())).toPath();
+            Files.write(path,getData(sender.myUser.zipUrl),StandardOpenOption.CREATE,StandardOpenOption.WRITE);
+            sender.sendMessage("备份成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            sender.sendMessage(e.toString());
+        }
+    }
+    @SubCommand
+    @Description("恢复备份")
+    public void restore(CommandContext context) {
+        SenderFacade sender = SenderFacade.getInstance(context);
+        if (sender == null) return;
+        try {
+            SaveManagement saveManagement = new SaveManagement(sender.user.getId(),sender.myUser);
+            Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d.zip",sender.user.getId())).toPath();
+            saveManagement.data = Files.readAllBytes(path);
+            saveManagement.uploadZip(ModifyStrategyImpl.challengeScore);
+            sender.sendMessage("恢复成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            sender.sendMessage(e.toString());
+        }
+    }
+    @SubCommand
+    @Description("备份历史")
+    public void backupHistory(CommandContext context) {
+        SenderFacade sender = SenderFacade.getInstance(context);
+        if (sender == null) return;
+        try {
+            Path dirPath = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d",sender.user.getId())).toPath();
+            if (!Files.isDirectory(dirPath)) {
                 sender.sendMessage("无备份");
                 return;
             }
-            Files.list(path).forEach(path1 -> {
-                builder.append(path1.getFileName().toString());
-                builder.append('\n');
-            });
+            StringBuilder builder = new StringBuilder();
+            try (Stream<Path> stream = Files.list(dirPath)) {
+                stream.forEach(path -> {
+                    builder.append(path.getFileName().toString());
+                    builder.append('\n');
+                });
+            }
             builder.deleteCharAt(builder.length()-1);
             sender.sendMessage(builder.toString());
         } catch (Exception e) {
@@ -122,14 +155,14 @@ public final class MyCompositeCommand extends JCompositeCommand {
         }
     }
     @SubCommand
-    @Description("恢复备份")
-    public void restore(CommandContext context,String time) {
+    @Description("恢复备份历史")
+    public void restoreHistory(CommandContext context,String time) {
         SenderFacade sender = SenderFacade.getInstance(context);
         if (sender == null) return;
         try {
-            byte[] data = Files.readAllBytes(MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d/%s.zip",sender.user.getId(),time)).toPath());
+            Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d/%s.zip",sender.user.getId(),time)).toPath();
             SaveManagement saveManagement = new SaveManagement(sender.user.getId(),sender.myUser);
-            saveManagement.data = data;
+            saveManagement.data = Files.readAllBytes(path);
             saveManagement.uploadZip(ModifyStrategyImpl.challengeScore);
             sender.sendMessage("恢复成功");
         } catch (Exception e) {
@@ -254,25 +287,28 @@ public final class MyCompositeCommand extends JCompositeCommand {
         }
     }
     public byte[] extractZip(String zipUrl,String name) throws Exception {
-        HttpResponse<byte[]> response = SaveManagement.client.send(HttpRequest.newBuilder(new URI(zipUrl)).build(),HttpResponse.BodyHandlers.ofByteArray());
-        if (response.statusCode() == 404) {
-            return null;
-        }
-        byte[] buffer = response.body();
-        ByteArrayInputStream reader = new ByteArrayInputStream(buffer);
-        ZipInputStream zipReader = new ZipInputStream(reader);
-        while (true) {
-            ZipEntry entry = zipReader.getNextEntry();
-            System.out.println(entry);
-            if (entry.getName().equals(name)) {
-                break;
+        byte[] buffer;
+        try (ByteArrayInputStream reader = new ByteArrayInputStream(getData(zipUrl))) {
+            try (ZipInputStream zipReader = new ZipInputStream(reader)) {
+                while (true) {
+                    ZipEntry entry = zipReader.getNextEntry();
+                    System.out.println(entry);
+                    if (entry.getName().equals(name)) {
+                        break;
+                    }
+                }
+                zipReader.read();
+                buffer = zipReader.readAllBytes();
+                zipReader.closeEntry();
             }
         }
-        zipReader.read();
-        buffer = zipReader.readAllBytes();
-        zipReader.closeEntry();
-        zipReader.close();
-        reader.close();
         return buffer;
+    }
+    private byte[] getData(String zipUrl) throws Exception {
+        HttpResponse<byte[]> response = SaveManagement.client.send(HttpRequest.newBuilder(new URI(zipUrl)).build(),HttpResponse.BodyHandlers.ofByteArray());
+        if (response.statusCode() == 404) {
+            throw new Exception("存档文件不存在");
+        }
+        return response.body();
     }
 }

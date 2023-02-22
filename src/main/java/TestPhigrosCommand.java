@@ -1,3 +1,4 @@
+import net.mamoe.mirai.console.command.CommandContext;
 import net.mamoe.mirai.console.command.CommandSender;
 import net.mamoe.mirai.console.command.OtherClientCommandSender;
 import net.mamoe.mirai.console.command.OtherClientCommandSenderOnMessageSync;
@@ -6,6 +7,9 @@ import net.mamoe.mirai.contact.Group;
 import net.mamoe.mirai.contact.Member;
 import net.mamoe.mirai.message.data.Image;
 import net.mamoe.mirai.utils.ExternalResource;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class TestPhigrosCommand extends JCompositeCommand {
     public static final TestPhigrosCommand INSTANCE = new TestPhigrosCommand();
