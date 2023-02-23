@@ -10,6 +10,7 @@ import net.mamoe.mirai.utils.ExternalResource;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Stream;
 
 public class TestPhigrosCommand extends JCompositeCommand {
     public static final TestPhigrosCommand INSTANCE = new TestPhigrosCommand();
@@ -41,6 +42,47 @@ public class TestPhigrosCommand extends JCompositeCommand {
         MyUser user = getUser(sender);
         if (user == null) return;
         SaveManagement.delete(user.session,objectId);
+    }
+    @SubCommand
+    @Description("备份历史")
+    public void backupHistory(CommandContext context) {
+        SenderFacade sender = SenderFacade.getInstance(context);
+        if (sender == null) return;
+        try {
+            Path dirPath = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d",sender.user.getId())).toPath();
+            if (!Files.isDirectory(dirPath)) {
+                sender.sendMessage("无备份");
+                return;
+            }
+            StringBuilder builder = new StringBuilder();
+            try (Stream<Path> stream = Files.list(dirPath)) {
+                stream.forEach(path -> {
+                    builder.append(path.getFileName().toString());
+                    builder.append('\n');
+                });
+            }
+            builder.deleteCharAt(builder.length()-1);
+            sender.sendMessage(builder.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+            sender.sendMessage(e.toString());
+        }
+    }
+    @SubCommand
+    @Description("恢复备份历史")
+    public void restoreHistory(CommandContext context,String time) {
+        SenderFacade sender = SenderFacade.getInstance(context);
+        if (sender == null) return;
+        try {
+            Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d/%s.zip",sender.user.getId(),time)).toPath();
+            SaveManagement saveManagement = new SaveManagement(sender.user.getId(),sender.myUser);
+            saveManagement.data = Files.readAllBytes(path);
+            saveManagement.uploadZip(ModifyStrategyImpl.challengeScore);
+            sender.sendMessage("恢复成功");
+        } catch (Exception e) {
+            e.printStackTrace();
+            sender.sendMessage(e.toString());
+        }
     }
     private MyUser getUser(CommandSender sender) {
         MyUser user = SenderFacade.users.get(sender.getUser().getId());

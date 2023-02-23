@@ -17,12 +17,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
 import java.util.TimeZone;
-import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -46,7 +44,7 @@ public class SaveManagement {
         format.setTimeZone(TimeZone.getTimeZone("GMT"));
         try {
             md5 = MessageDigest.getInstance("MD5");
-        } catch (NoSuchAlgorithmException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
@@ -77,7 +75,7 @@ public class SaveManagement {
         System.out.println(user.zipUrl);
         return json.getString("summary");
     }
-    public static JSONObject save(String session) throws Exception {
+    private static JSONObject save(String session) throws Exception {
         HttpRequest request = globalRequest.copy().header("X-LC-Session",session).uri(new URI(save)).build();
         String response = client.send(request,handler).body();
         System.out.println(response);
@@ -105,7 +103,7 @@ public class SaveManagement {
     }
     public void modify(String type, ModifyStrategy callback) throws Exception {
         md5.reset();
-        if (!bytes2hex(md5.digest(data)).equals(saveModel.checksum)) throw new Exception("文件校验不一致");
+        if (!md5(data).equals(saveModel.checksum)) throw new Exception("文件校验不一致");
         Path path = MyPlugin.INSTANCE.resolveDataPath(String.format("backup/%d",id));
         if (!Files.isDirectory(path)) {
             Files.createDirectory(path);
@@ -170,7 +168,7 @@ public class SaveManagement {
         md5.reset();
         HttpRequest.Builder builder = template.copy();
         builder.uri(new URI(fileTokens));
-        builder.POST(HttpRequest.BodyPublishers.ofString(String.format("{\"name\":\".save\",\"__type\":\"File\",\"ACL\":{\"%s\":{\"read\":true,\"write\":true}},\"prefix\":\"gamesaves\",\"metaData\":{\"size\":%d,\"_checksum\":\"%s\",\"prefix\":\"gamesaves\"}}",saveModel.userObjectId,data.length,bytes2hex(md5.digest(data)))));
+        builder.POST(HttpRequest.BodyPublishers.ofString(String.format("{\"name\":\".save\",\"__type\":\"File\",\"ACL\":{\"%s\":{\"read\":true,\"write\":true}},\"prefix\":\"gamesaves\",\"metaData\":{\"size\":%d,\"_checksum\":\"%s\",\"prefix\":\"gamesaves\"}}",saveModel.userObjectId,data.length, md5(data))));
         response = client.send(builder.build(),handler).body();
         String tokenKey = Base64.getEncoder().encodeToString(JSON.parseObject(response).getString("key").getBytes());
         String newGameObjectId = JSON.parseObject(response).getString("objectId");
@@ -245,11 +243,13 @@ public class SaveManagement {
         cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key,"AES"),new IvParameterSpec(iv));
         return cipher.doFinal(data);
     }
-    private static String bytes2hex(byte[] data) {
-        if (data.length != 16) return null;
+    private static String md5(byte[] data) {
+        md5.reset();
+        data = md5.digest(data);
         StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < 16; i++) {
-            builder.append(String.format("%02x",data[i]));
+        for (byte b:data) {
+            builder.append(Character.forDigit(b>>4&15,16));
+            builder.append(Character.forDigit(b&15,16));
         }
         return builder.toString();
     }

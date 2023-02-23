@@ -59,7 +59,7 @@ public final class TestCommand extends JRawCommand {
                 stringBuilder.append(" ");
             }
             System.out.println(sender);
-            CommandManager.INSTANCE.executeCommand(sender,new PlainText(stringBuilder.toString()),true);
+            CommandManager.INSTANCE.executeCommand(sender,new PlainText(stringBuilder.toString()),false);
         }
     }
 }

@@ -5,7 +5,6 @@ import net.mamoe.mirai.message.data.MessageSource;
 import net.mamoe.mirai.utils.ExternalResource;
 
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -16,8 +15,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Base64;
 import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -50,24 +47,20 @@ public final class MyCompositeCommand extends JCompositeCommand {
             sender.sendMessage(e.toString());
         }
     }
-    @SubCommand
-    @Description("更新")
-    public void update(CommandContext context) {
-        SenderFacade sender = SenderFacade.getInstance(context);
-        if (sender == null) return;
-        try {
-            System.out.println(sender.myUser.session);
-            String summary = SaveManagement.update(sender.myUser);
-            ByteBuffer byteBuffer = ByteBuffer.wrap(Base64.getDecoder().decode(summary));
-            byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-            byteBuffer.position(1);
-            int challenge = byteBuffer.getShort();
-            float rks = byteBuffer.getFloat();
-            sender.sendMessage(String.format("%.4f\n%s%d",rks,challenges[challenge/100],challenge%100));
-        } catch (Exception e) {
-            e.printStackTrace();
-            sender.sendMessage(e.toString());
+    private String update(MyUser user) throws Exception {
+        if (user.time == 0) {
+            user.time = System.currentTimeMillis();
+        }else if (System.currentTimeMillis() - user.time < 90 * 1000) {
+            return null;
         }
+        System.out.println(user.session);
+        String summary = SaveManagement.update(user);
+        ByteBuffer byteBuffer = ByteBuffer.wrap(Base64.getDecoder().decode(summary));
+        byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+        byteBuffer.position(1);
+        int challenge = byteBuffer.getShort();
+        float rks = byteBuffer.getFloat();
+        return String.format("%.4f\n%s%d",rks,challenges[challenge/100],challenge%100);
     }
     @SubCommand
     @Description("B19图")
@@ -75,6 +68,8 @@ public final class MyCompositeCommand extends JCompositeCommand {
         SenderFacade sender = SenderFacade.getInstance(context);
         if (sender == null) return;
         try {
+            String summary = update(sender.myUser);
+            if (summary != null) sender.sendMessage(summary);
             byte[] data = extractZip(sender.myUser.zipUrl, "gameRecord");
             data = SaveManagement.decrypt(data);
             new B19(data).b19Pic();
@@ -91,6 +86,8 @@ public final class MyCompositeCommand extends JCompositeCommand {
         SenderFacade sender = SenderFacade.getInstance(context);
         if (sender == null) return;
         try {
+            String summary = update(sender.myUser);
+            if (summary != null) sender.sendMessage(summary);
             byte[] data = extractZip(sender.myUser.zipUrl, "gameRecord");
             data = SaveManagement.decrypt(data);
             sender.sendMessage(new B19(data).expectCalc(sender.user, data));
@@ -121,47 +118,6 @@ public final class MyCompositeCommand extends JCompositeCommand {
         try {
             SaveManagement saveManagement = new SaveManagement(sender.user.getId(),sender.myUser);
             Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d.zip",sender.user.getId())).toPath();
-            saveManagement.data = Files.readAllBytes(path);
-            saveManagement.uploadZip(ModifyStrategyImpl.challengeScore);
-            sender.sendMessage("恢复成功");
-        } catch (Exception e) {
-            e.printStackTrace();
-            sender.sendMessage(e.toString());
-        }
-    }
-    @SubCommand
-    @Description("备份历史")
-    public void backupHistory(CommandContext context) {
-        SenderFacade sender = SenderFacade.getInstance(context);
-        if (sender == null) return;
-        try {
-            Path dirPath = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d",sender.user.getId())).toPath();
-            if (!Files.isDirectory(dirPath)) {
-                sender.sendMessage("无备份");
-                return;
-            }
-            StringBuilder builder = new StringBuilder();
-            try (Stream<Path> stream = Files.list(dirPath)) {
-                stream.forEach(path -> {
-                    builder.append(path.getFileName().toString());
-                    builder.append('\n');
-                });
-            }
-            builder.deleteCharAt(builder.length()-1);
-            sender.sendMessage(builder.toString());
-        } catch (Exception e) {
-            e.printStackTrace();
-            sender.sendMessage(e.toString());
-        }
-    }
-    @SubCommand
-    @Description("恢复备份历史")
-    public void restoreHistory(CommandContext context,String time) {
-        SenderFacade sender = SenderFacade.getInstance(context);
-        if (sender == null) return;
-        try {
-            Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d/%s.zip",sender.user.getId(),time)).toPath();
-            SaveManagement saveManagement = new SaveManagement(sender.user.getId(),sender.myUser);
             saveManagement.data = Files.readAllBytes(path);
             saveManagement.uploadZip(ModifyStrategyImpl.challengeScore);
             sender.sendMessage("恢复成功");
