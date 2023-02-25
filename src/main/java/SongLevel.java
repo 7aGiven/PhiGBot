@@ -7,15 +7,16 @@ public class SongLevel implements Comparable<SongLevel>{
     float acc;
     boolean fc;
     double rks;
-
-    @Override
-    public int compareTo(@NotNull SongLevel songLevel) {
-        if (rks > songLevel.rks) {
-            return 1;
-        } else if (rks < songLevel.rks) {
-            return -1;
-        } else {
-            return 0;
-        }
+    public SongLevel() {}
+    public SongLevel(double rks) {this.rks = rks;}
+    public SongLevel(String id,int level,int score,float acc,boolean fc,double rks) {
+        this.id = id;
+        this.level = level;
+        this.score = score;
+        this.acc = acc;
+        this.fc = fc;
+        this.rks = rks;
     }
+    @Override
+    public int compareTo(@NotNull SongLevel songLevel) {return Double.compare(songLevel.rks, rks);}
 }

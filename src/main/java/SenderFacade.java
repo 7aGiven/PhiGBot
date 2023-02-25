@@ -19,7 +19,6 @@ public class SenderFacade {
     User user;
     MyUser myUser;
     public static SenderFacade getInstance(CommandContext context) {
-        System.out.println("getInstance");
         return getInstance(context,true);
     }
     public static SenderFacade getInstance(CommandContext context,boolean b) {

@@ -31,6 +31,7 @@ public final class MyCompositeCommand extends JCompositeCommand {
     @Description("绑定")
     public void bind(CommandContext context, @Name("token")String session) {
         SenderFacade sender = SenderFacade.getInstance(context,false);
+        if (sender == null) return;
         try {
             if (sender.subject instanceof Group) {
                 sender.sendMessage("请私聊绑定");
@@ -55,6 +56,7 @@ public final class MyCompositeCommand extends JCompositeCommand {
         }
         System.out.println(user.session);
         String summary = SaveManagement.update(user);
+        System.out.println(summary);
         ByteBuffer byteBuffer = ByteBuffer.wrap(Base64.getDecoder().decode(summary));
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
         byteBuffer.position(1);
@@ -65,6 +67,24 @@ public final class MyCompositeCommand extends JCompositeCommand {
     @SubCommand
     @Description("B19图")
     public void b19(CommandContext context) {
+        SenderFacade sender = SenderFacade.getInstance(context);
+        if (sender == null) return;
+        try {
+            String summary = update(sender.myUser);
+            if (summary != null) sender.sendMessage(summary);
+            byte[] data = extractZip(sender.myUser.zipUrl, "gameRecord");
+            data = SaveManagement.decrypt(data);
+            data = new B19(data).tt();
+            ExternalResource ex = ExternalResource.create(data);
+            sender.sendImage(ex);
+        } catch (Exception e) {
+            e.printStackTrace();
+            sender.sendMessage(e.toString());
+        }
+    }
+    @SubCommand
+    @Description("B19测试")
+    public void tt(CommandContext context) {
         SenderFacade sender = SenderFacade.getInstance(context);
         if (sender == null) return;
         try {
@@ -102,6 +122,7 @@ public final class MyCompositeCommand extends JCompositeCommand {
         SenderFacade sender = SenderFacade.getInstance(context);
         if (sender == null) return;
         try {
+            update(sender.myUser);
             Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d.zip",sender.user.getId())).toPath();
             Files.write(path,getData(sender.myUser.zipUrl),StandardOpenOption.CREATE,StandardOpenOption.WRITE);
             sender.sendMessage("备份成功");
@@ -253,7 +274,7 @@ public final class MyCompositeCommand extends JCompositeCommand {
                         break;
                     }
                 }
-                zipReader.read();
+                zipReader.skip(1);
                 buffer = zipReader.readAllBytes();
                 zipReader.closeEntry();
             }

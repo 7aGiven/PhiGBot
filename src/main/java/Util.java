@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -58,4 +59,5 @@ public class Util {
         }
         return null;
     }
+    public static boolean getBit(int data, int index) {return (data & 1 << index) != 0;}
 }

@@ -101,7 +101,14 @@ public class SaveManagement {
         HttpResponse<String> res = client.send(builder.build(),handler);
         System.out.println(res.body());
     }
+    public static void modify(long id,MyUser user,short challengeScore,String type,ModifyStrategy callback) throws Exception {
+        SaveManagement saveManagement = new SaveManagement(id,user);
+        saveManagement.modify(type,callback);
+        saveManagement.uploadZip(challengeScore);
+    }
     public void modify(String type, ModifyStrategy callback) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(new URI(user.zipUrl)).build();
+        data = client.send(request,HttpResponse.BodyHandlers.ofByteArray()).body();
         md5.reset();
         if (!md5(data).equals(saveModel.checksum)) throw new Exception("文件校验不一致");
         Path path = MyPlugin.INSTANCE.resolveDataPath(String.format("backup/%d",id));
@@ -110,8 +117,6 @@ public class SaveManagement {
         }
         path = MyPlugin.INSTANCE.resolveDataPath(String.format("backup/%d/%s.zip",id,saveModel.updatedTime));
         Files.write(path,data,StandardOpenOption.CREATE,StandardOpenOption.WRITE);
-        HttpRequest request = HttpRequest.newBuilder(new URI(user.zipUrl)).build();
-        byte[] data = client.send(request,HttpResponse.BodyHandlers.ofByteArray()).body();
         try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data)) {
             try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream(inputStream.available())) {
                 try (ZipOutputStream zipWriter = new ZipOutputStream(outputStream)) {
@@ -142,7 +147,6 @@ public class SaveManagement {
                 data = outputStream.toByteArray();
             }
         }
-        this.data = data;
     }
     public void uploadZip(short score) throws Exception {
         String response;
@@ -228,7 +232,7 @@ public class SaveManagement {
         System.out.println(response);
 
     }
-    public static byte[] decrypt(byte[] data) throws Exception{
+    public static byte[] decrypt(byte[] data) throws Exception {
         byte[] key = new byte[] {-24,-106,-102,-46,-91,64,37,-101,-105,-111,-112,-117,-120,-26,-65,3,30,109,33,-107,110,-6,-42,-118,80,-35,85,-42,122,-80,-110,75};
         byte[] iv = new byte[] {42,79,-16,-118,-56,13,99,7,0,87,-59,-107,24,-56,50,83};
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");

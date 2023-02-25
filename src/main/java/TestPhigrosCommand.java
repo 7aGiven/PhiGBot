@@ -45,11 +45,11 @@ public class TestPhigrosCommand extends JCompositeCommand {
     }
     @SubCommand
     @Description("备份历史")
-    public void backupHistory(CommandContext context) {
-        SenderFacade sender = SenderFacade.getInstance(context);
+    public void backupHistory(CommandSender sender) {
+        sender = getCommandSender(sender);
         if (sender == null) return;
         try {
-            Path dirPath = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d",sender.user.getId())).toPath();
+            Path dirPath = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d",sender.getUser().getId())).toPath();
             if (!Files.isDirectory(dirPath)) {
                 sender.sendMessage("无备份");
                 return;
@@ -70,12 +70,12 @@ public class TestPhigrosCommand extends JCompositeCommand {
     }
     @SubCommand
     @Description("恢复备份历史")
-    public void restoreHistory(CommandContext context,String time) {
-        SenderFacade sender = SenderFacade.getInstance(context);
+    public void restoreHistory(CommandSender sender,String time) {
+        sender = getCommandSender(sender);
         if (sender == null) return;
         try {
-            Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d/%s.zip",sender.user.getId(),time)).toPath();
-            SaveManagement saveManagement = new SaveManagement(sender.user.getId(),sender.myUser);
+            Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d/%s.zip",sender.getUser().getId(),time)).toPath();
+            SaveManagement saveManagement = new SaveManagement(sender.getUser().getId(),getUser(sender));
             saveManagement.data = Files.readAllBytes(path);
             saveManagement.uploadZip(ModifyStrategyImpl.challengeScore);
             sender.sendMessage("恢复成功");

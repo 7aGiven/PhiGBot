@@ -6,19 +6,17 @@ import java.nio.ByteOrder;
 public class ModifyStrategyImpl {
     public static final short challengeScore = 0;
     public static void song(long qqid,MyUser user, String name, int level, int s, float a, boolean fc) throws Exception {
-        SaveManagement saveManagement = new SaveManagement(qqid,user);
-        saveManagement.modify("gameRecord", data -> {
+        SaveManagement.modify(qqid,user,challengeScore,"gameRecord", data -> {
             boolean exist = false;
             Score score = new Score(data);
             for (String id:score) {
                 if (name.equals(id)) {
+                    exist = true;
                     Song song = score.getSong();
                     if (song.get(level).score == 0) {
                         throw new Exception("您尚未游玩此歌曲的该难度");
                     }
-                    score.modifySong(level,s,a,fc);
-                    data = score.getData();
-                    exist = true;
+                    data = score.modifySong(level,s,a,fc);
                     break;
                 }
             }
@@ -27,20 +25,16 @@ public class ModifyStrategyImpl {
             }
             return data;
         });
-        saveManagement.uploadZip(challengeScore);
     }
     public static void avater(long id,MyUser user,String avater) throws Exception {
-        SaveManagement saveManagement = new SaveManagement(id,user);
-        saveManagement.modify("gameKey", data -> {
+        SaveManagement.modify(id,user,challengeScore,"gameKey", data -> {
             GameKey gameKey = new GameKey(data);
             boolean exist = false;
             for (String key:gameKey) {
                 if (key.equals(avater)) {
                     exist = true;
                     data = gameKey.getKey();
-                    if (data[4] == 1) {
-                        throw new Exception("您已经拥有该头像");
-                    }
+                    if (data[4] == 1) throw new Exception("您已经拥有该头像");
                     data = gameKey.modifyAvater();
                     break;
                 }
@@ -50,11 +44,9 @@ public class ModifyStrategyImpl {
             }
             return data;
         });
-        saveManagement.uploadZip(challengeScore);
     }
     public static void collection(long id,MyUser user,String collection) throws Exception {
-        SaveManagement saveManagement = new SaveManagement(id,user);
-        saveManagement.modify("gameKey", data -> {
+        SaveManagement.modify(id,user,challengeScore,"gameKey", data -> {
             GameKey gameKey = new GameKey(data);
             boolean exist = false;
             for (String key:gameKey) {
@@ -69,22 +61,18 @@ public class ModifyStrategyImpl {
             }
             return data;
         });
-        saveManagement.uploadZip(challengeScore);
     }
     public static void challenge(long id,MyUser user,short score) throws Exception {
-        SaveManagement saveManagement = new SaveManagement(id,user);
-        saveManagement.modify("gameProgress", data -> {
+        SaveManagement.modify(id,user,challengeScore,"gameProgress", data -> {
             ByteBuffer byteBuffer = ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN);
             byteBuffer.putShort(score);
             byteBuffer.position(0);
             byteBuffer.get(data,6,2);
             return data;
         });
-        saveManagement.uploadZip(score);
     }
     public static void data(long id,MyUser user,short num) throws Exception {
-        SaveManagement saveManagement = new SaveManagement(id,user);
-        saveManagement.modify("gameProgress", data -> {
+        SaveManagement.modify(id,user,challengeScore,"gameProgress", data -> {
             try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
                 try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data)) {
                     outputStream.writeBytes(inputStream.readNBytes(8));
@@ -108,6 +96,5 @@ public class ModifyStrategyImpl {
             }
             return data;
         });
-        saveManagement.uploadZip(challengeScore);
     }
 }
