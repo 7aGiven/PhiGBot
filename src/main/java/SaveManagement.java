@@ -36,7 +36,7 @@ public class SaveManagement {
     private static final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
     private static final MessageDigest md5;
     public final SaveModel saveModel;
-    private long id;
+    private final long id;
     private final MyUser user;
     public byte[] data;
 
