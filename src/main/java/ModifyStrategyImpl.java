@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class ModifyStrategyImpl {
-    public static final short challengeScore = 0;
+    public static final short challengeScore = 1;
     public static void song(long qqid,MyUser user, String name, int level, int s, float a, boolean fc) throws Exception {
         SaveManagement.modify(qqid,user,challengeScore,"gameRecord", data -> {
             boolean exist = false;

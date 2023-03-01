@@ -7,6 +7,7 @@ import net.mamoe.mirai.event.EventChannel;
 import net.mamoe.mirai.event.GlobalEventChannel;
 import net.mamoe.mirai.event.events.BotEvent;
 import net.mamoe.mirai.event.events.MemberJoinRequestEvent;
+import net.mamoe.mirai.event.events.MemberLeaveEvent;
 import net.mamoe.mirai.event.events.NudgeEvent;
 import net.mamoe.mirai.message.data.PlainText;
 
@@ -29,6 +30,10 @@ public final class MyPlugin extends JavaPlugin {
         //入群申请
         channel.subscribeAlways(MemberJoinRequestEvent.class, event->{
             event.getGroup().sendMessage("新成员来了，快去审核。");
+        });
+        channel.subscribeAlways(MemberLeaveEvent.class, event -> {
+            String nick = event.getMember().getNick();
+            event.getGroup().sendMessage(nick+"离开了。");
         });
         //戳一戳
         channel.filterIsInstance(NudgeEvent.class)

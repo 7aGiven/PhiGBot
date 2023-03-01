@@ -130,7 +130,7 @@ public class SaveManagement {
                             dEntry.setCompressedSize(-1);
                             zipWriter.putNextEntry(dEntry);
                             if (entry.getName().equals(type)) {
-                                zipReader.read();
+                                zipReader.skip(1);
                                 data = zipReader.readAllBytes();
                                 data = decrypt(data);
                                 data = callback.apply(data);
@@ -147,6 +147,9 @@ public class SaveManagement {
                 data = outputStream.toByteArray();
             }
         }
+    }
+    public void uploadZip() throws Exception {
+        uploadZip((short) 1);
     }
     public void uploadZip(short score) throws Exception {
         String response;

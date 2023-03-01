@@ -1,12 +1,10 @@
+import net.mamoe.mirai.console.command.CommandContext;
 import net.mamoe.mirai.console.command.CommandManager;
 import net.mamoe.mirai.console.command.CommandSender;
 import net.mamoe.mirai.console.command.OtherClientCommandSenderOnMessageSync;
 import net.mamoe.mirai.console.command.java.JRawCommand;
 import net.mamoe.mirai.contact.*;
-import net.mamoe.mirai.message.data.At;
-import net.mamoe.mirai.message.data.MessageChain;
-import net.mamoe.mirai.message.data.PlainText;
-import net.mamoe.mirai.message.data.SingleMessage;
+import net.mamoe.mirai.message.data.*;
 import org.jetbrains.annotations.NotNull;
 
 public final class TestCommand extends JRawCommand {
@@ -16,7 +14,8 @@ public final class TestCommand extends JRawCommand {
     }
 
     @Override
-    public void onCommand(@NotNull CommandSender sender,@NotNull MessageChain args) {
+    public void onCommand(@NotNull CommandContext context, @NotNull MessageChain args) {
+        CommandSender sender = context.getSender();
         if (args.size() == 0) return;
         Contact contact = ((OtherClientCommandSenderOnMessageSync) sender).getFromEvent().getSubject();
         if (args.size() == 1) {
@@ -58,8 +57,9 @@ public final class TestCommand extends JRawCommand {
                 stringBuilder.append(s);
                 stringBuilder.append(" ");
             }
+            MessageChain chain = context.getOriginalMessage().get(MessageSource.Key).plus(stringBuilder.toString());
             System.out.println(sender);
-            CommandManager.INSTANCE.executeCommand(sender,new PlainText(stringBuilder.toString()),false);
+            CommandManager.INSTANCE.executeCommand(sender,chain,false);
         }
     }
 }

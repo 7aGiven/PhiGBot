@@ -1,3 +1,4 @@
+import net.mamoe.mirai.console.plugin.jvm.JavaPluginScheduler;
 import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.message.data.ForwardMessage;
 import net.mamoe.mirai.message.data.ForwardMessageBuilder;
@@ -10,11 +11,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileWriter;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class B19 {
     public static final HashMap<String,SongInfo> info = Util.readLevel();
     public static final String[] levels = new String[]{"EZ","HD","IN","AT"};
+    private static Image[] ranks;
+    private static Image background;
     private static final ReentrantLock lock = new ReentrantLock();
     private final SongLevel[] b19 = new SongLevel[20];
     private static final Color[] colorLevel = new Color[] {Color.GREEN,Color.BLUE,Color.RED,Color.GRAY};
@@ -111,24 +115,37 @@ public class B19 {
         return builder.build();
     }
     public byte[] tt() throws Exception {
+        System.out.println(System.currentTimeMillis());
         if (defaultFont == null) {
             defaultFont = Font.createFont(Font.TRUETYPE_FONT,MyPlugin.INSTANCE.resolveDataFile("ukai.ttc")).deriveFont(40f);
         }
+        int imageWidth = 1600;
+        int imageHeight = 2300;
+        int height = 158;
+        int offset = 300;
+        if (background == null) {
+            background = ImageIO.read(MyPlugin.INSTANCE.resolveDataFile("arc.png")).getScaledInstance(imageWidth,imageHeight,Image.SCALE_DEFAULT);
+        }
+        if (ranks == null) {
+            Image[] ranks = new Image[8];
+            String[] rankString = new String[] {"F15F","C15C","B15B","A15A","S15S","V15V","V15FC","phi15phi"};
+            for (int i = 0; i < 8; i++) {
+                ranks[i] = ImageIO.read(MyPlugin.INSTANCE.resolveDataFile(rankString[i]+".png")).getScaledInstance(height,height,Image.SCALE_DEFAULT);
+            }
+            B19.ranks = ranks;
+        }
+        JavaPluginScheduler scheduler = MyPlugin.INSTANCE.getScheduler();
         double rks = 0;
         for (int i = 0; i < 20; i++) {
             rks += b19[i].rks;
         }
         rks /= 20;
-        int imageWidth = 1600;
-        int imageHeight = 2300;
-        int offset = 300;
-        Image backgroundImage = ImageIO.read(MyPlugin.INSTANCE.resolveDataFile("arc.png")).getScaledInstance(imageWidth,imageHeight,Image.SCALE_DEFAULT);
-        BufferedImage bufferedImage;
         BufferedImage background = new BufferedImage(imageWidth,imageHeight,BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = background.createGraphics();
+        Drawer drawer = new Drawer(g2d);
         Composite defaultComposite = g2d.getComposite();
         AlphaComposite alphaComposite = AlphaComposite.getInstance(AlphaComposite.SRC_ATOP,0.6f);
-        g2d.drawImage(backgroundImage,0,0,null);
+        drawer.drawImage(B19.background,0,0);
         g2d.setFont(defaultFont.deriveFont(70f));
         g2d.setColor(Color.BLACK);
         g2d.setComposite(alphaComposite);
@@ -140,57 +157,65 @@ public class B19 {
         g2d.setFont(defaultFont.deriveFont(50f));
         g2d.drawString(format.format(new Date()),50,110);
         g2d.setFont(defaultFont);
-        SongLevel songLevel;
         int illustrationWidth = 300;
-        int height = 158;
         int yBlank = 20;
         int xBlank = 100;
         int[] xs = new int[] {xBlank,(imageWidth+xBlank)/2};
-        String rank;
+        BufferedImage[] illustrations = new BufferedImage[20];
+        Future<BufferedImage>[] futures = new Future[20];
+        System.out.println("start");
+        System.out.println(System.currentTimeMillis());
+        for (int i = 0; i < 20; i++) {
+            futures[i] = scheduler.async(new IllustrationCallback(b19[i].id));
+        }
+        for (int i = 0; i < 20; i++) {
+            illustrations[i] = futures[i].get();
+        }
+        System.out.println(System.currentTimeMillis());
         for (int x = 0; x < 2; x++) {
             for (int y = 0; y < 10; y++) {
-                Point point = new Point(xs[x],offset+y*(height+yBlank));
-                songLevel = b19[10*x+y];
-                BufferedImage illustration = ImageIO.read(MyPlugin.INSTANCE.resolveDataFile(String.format("illustration/%s.png",songLevel.id)));
-                g2d.drawImage(illustration,point.x,point.y,null);
+                drawer.setPoint(xs[x],offset+y*(height+yBlank));
+                SongLevel songLevel = b19[10* x +y];
+                drawer.drawImage(illustrations[10*x+y],0,0);
                 g2d.setColor(colorLevel[songLevel.level]);
-                g2d.fillRect(point.x,point.y+height-40,90,40);
+                drawer.fillRect(0,height-40,90,40);
                 g2d.setColor(Color.BLACK);
                 g2d.setComposite(alphaComposite);
-                g2d.fillRect(point.x+illustrationWidth+10,point.y,height+180,height);
+                drawer.fillRect(illustrationWidth+10,0,height+200,height);
                 g2d.setComposite(defaultComposite);
                 g2d.setColor(Color.WHITE);
-                g2d.drawString(String.format("%.1f",info.get(songLevel.id).level[songLevel.level]),point.x,point.y+height-5);
+                drawer.drawString(String.format("%.1f",info.get(songLevel.id).level[songLevel.level]),0,height-5);
+                int rank;
                 if (songLevel.fc) {
                     if (songLevel.score == 1000000) {
-                        rank = "phi15phi.png";
+                        rank = 7;
                     } else {
-                        rank = "V15FC.png";
+                        rank = 6;
                     }
                 } else if (songLevel.score >= 960000) {
-                    rank = "V15V.png";
+                    rank = 5;
                 } else if (songLevel.score >= 920000) {
-                    rank = "S15S.png";
+                    rank = 4;
                 } else if (songLevel.score >= 880000) {
-                    rank = "A15A.png";
+                    rank = 3;
                 } else if (songLevel.score >= 820000) {
-                    rank = "B15B.png";
+                    rank = 2;
                 } else if (songLevel.score >= 700000) {
-                    rank = "C15C.png";
+                    rank = 1;
                 } else {
-                    rank = "F15F.png";
+                    rank = 0;
                 }
-                bufferedImage = ImageIO.read(MyPlugin.INSTANCE.resolveDataFile(rank));
-                g2d.drawImage(bufferedImage.getScaledInstance(height,height,Image.SCALE_DEFAULT),point.x+illustrationWidth,point.y,null);
-                g2d.drawString(String.format(" %.3f",songLevel.rks),point.x+illustrationWidth+height,point.y+40);
+                drawer.drawImage(ranks[rank],illustrationWidth,0);
+                drawer.drawString(String.format(" %.3f", songLevel.rks),illustrationWidth+height,40);
                 g2d.setFont(defaultFont.deriveFont(50f));
-                String score = String.format("%d",songLevel.score);
+                String score = String.format("%d", songLevel.score);
                 if (score.length() == 6) score = " " + score;
-                g2d.drawString(score,point.x+illustrationWidth+height,point.y+height/3+45);
+                drawer.drawString(score,illustrationWidth+height,height/3+45);
                 g2d.setFont(defaultFont);
-                g2d.drawString(String.format(" %.3f%%",songLevel.acc),point.x+illustrationWidth+height,point.y+height*2/3+40);
+                drawer.drawString(String.format(" %.3f%%", songLevel.acc),illustrationWidth+height,height*2/3+40);
             }
         }
+        System.out.println(System.currentTimeMillis());
         g2d.setComposite(defaultComposite);
         g2d.setColor(Color.BLACK);
         g2d.fillRect(imageWidth/2-150,offset+10*(height+yBlank)+yBlank,300,50);
@@ -199,7 +224,7 @@ public class B19 {
         g2d.dispose();
         byte[] data;
         try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
-            ImageIO.write(background,"png",byteArrayOutputStream);
+            ImageIO.write(background,"jpg",byteArrayOutputStream);
             data = byteArrayOutputStream.toByteArray();
         }
         return data;

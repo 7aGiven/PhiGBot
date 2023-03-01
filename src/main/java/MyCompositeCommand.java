@@ -74,7 +74,9 @@ public final class MyCompositeCommand extends JCompositeCommand {
             if (summary != null) sender.sendMessage(summary);
             byte[] data = extractZip(sender.myUser.zipUrl, "gameRecord");
             data = SaveManagement.decrypt(data);
+            System.out.println(System.currentTimeMillis());
             data = new B19(data).tt();
+            System.out.println(System.currentTimeMillis());
             ExternalResource ex = ExternalResource.create(data);
             sender.sendImage(ex);
         } catch (Exception e) {

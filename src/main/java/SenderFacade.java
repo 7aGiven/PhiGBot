@@ -24,9 +24,7 @@ public class SenderFacade {
     public static SenderFacade getInstance(CommandContext context,boolean b) {
         try {
             SenderFacade senderFacade = new SenderFacade();
-            if (context.getOriginalMessage().contains(MessageSource.Key)) {
-                senderFacade.quoteReply = new QuoteReply(context.getOriginalMessage());
-            }
+            senderFacade.quoteReply = new QuoteReply(context.getOriginalMessage());
             CommandSender sender = context.getSender();
             senderFacade.user = sender.getUser();
             if (b) {
