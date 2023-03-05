@@ -17,7 +17,7 @@ public class GameKey implements Iterable<String>{
         int key = reader.get();
         byte[] keys = new byte[5];
         for (int i = 0; i < 5; i++) {
-            if (Util.getBit(key,i)) {
+            if (DAO.getBit(key,i)) {
                 keys[i] = reader.get();
             }
         }
@@ -26,7 +26,7 @@ public class GameKey implements Iterable<String>{
     public byte[] modifyCollection() throws Exception {
         reader.position(dataPosition);
         int key = reader.get();
-        if (Util.getBit(key,0)) {
+        if (DAO.getBit(key,0)) {
             byte b = (byte) (reader.get()+1);
             reader.position(dataPosition+1);
             reader.put(b);
@@ -49,7 +49,7 @@ public class GameKey implements Iterable<String>{
         data[dataPosition] = (byte) (key+16);
         int index = 1;
         for (int i = 0; i < 4; i++) {
-            if (Util.getBit(key,i)) {
+            if (DAO.getBit(key,i)) {
                 data[dataPosition+index] = reader.get();
                 index++;
             }
@@ -69,7 +69,7 @@ public class GameKey implements Iterable<String>{
         reader.position(0);
         byte[] data = new byte[2];
         data[0] = reader.get();
-        int oldLength = Util.getBit(data[0],7)?2:1;
+        int oldLength = DAO.getBit(data[0],7)?2:1;
         int length = oldLength;
         if (oldLength == 2) data[1] = reader.get();
         if (oldLength == 1 && data[0] == Byte.MAX_VALUE) {
@@ -94,7 +94,7 @@ public class GameKey implements Iterable<String>{
         GameKeyIterator() {
             int a = reader.get();
             position = 1;
-            if (Util.getBit(a,7)) {
+            if (DAO.getBit(a,7)) {
                 position = 2;
             }
         }

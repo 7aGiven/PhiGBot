@@ -19,8 +19,8 @@ public class Score implements Iterable<String> {
         Song song = new Song();
         song.id = id;
         for (int i = 0; i < 4; i++) {
-            if (Util.getBit(length,i)) {
-                song.get(i).fc = Util.getBit(fc,i);
+            if (DAO.getBit(length,i)) {
+                song.get(i).fc = DAO.getBit(fc,i);
                 song.get(i).score = reader.getInt();
                 song.get(i).acc = reader.getFloat();
              }
@@ -32,7 +32,7 @@ public class Score implements Iterable<String> {
         byte length = reader.get();
         byte fc = reader.get();
         for (int i = 0; i < 4; i++) {
-            if (Util.getBit(length,i)) {
+            if (DAO.getBit(length,i)) {
                 if (i == level) {
                     reader.putInt(score);
                     reader.putFloat(acc);
@@ -62,7 +62,7 @@ public class Score implements Iterable<String> {
         private int position;
         ScoreIterator() {
             position = 1;
-            if (Util.getBit(reader.get(),7)) position = 2;
+            if (DAO.getBit(reader.get(),7)) position = 2;
         }
         @Override
         public boolean hasNext() {

@@ -4,9 +4,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class ModifyStrategyImpl {
-    public static final short challengeScore = 1;
-    public static void song(long qqid,MyUser user, String name, int level, int s, float a, boolean fc) throws Exception {
-        SaveManagement.modify(qqid,user,challengeScore,"gameRecord", data -> {
+    public static final short challengeScore = 3;
+    public static void song(long qqid, GameUser user, String name, int level, int s, float a, boolean fc) throws Exception {
+        SaveManager.modify(qqid,user,challengeScore,"gameRecord", data -> {
             boolean exist = false;
             Score score = new Score(data);
             for (String id:score) {
@@ -26,8 +26,8 @@ public class ModifyStrategyImpl {
             return data;
         });
     }
-    public static void avater(long id,MyUser user,String avater) throws Exception {
-        SaveManagement.modify(id,user,challengeScore,"gameKey", data -> {
+    public static void avater(long id, GameUser user, String avater) throws Exception {
+        SaveManager.modify(id,user,challengeScore,"gameKey", data -> {
             GameKey gameKey = new GameKey(data);
             boolean exist = false;
             for (String key:gameKey) {
@@ -45,8 +45,8 @@ public class ModifyStrategyImpl {
             return data;
         });
     }
-    public static void collection(long id,MyUser user,String collection) throws Exception {
-        SaveManagement.modify(id,user,challengeScore,"gameKey", data -> {
+    public static void collection(long id, GameUser user, String collection) throws Exception {
+        SaveManager.modify(id,user,challengeScore,"gameKey", data -> {
             GameKey gameKey = new GameKey(data);
             boolean exist = false;
             for (String key:gameKey) {
@@ -62,8 +62,8 @@ public class ModifyStrategyImpl {
             return data;
         });
     }
-    public static void challenge(long id,MyUser user,short score) throws Exception {
-        SaveManagement.modify(id,user,challengeScore,"gameProgress", data -> {
+    public static void challenge(long id, GameUser user, short score) throws Exception {
+        SaveManager.modify(id,user,challengeScore,"gameProgress", data -> {
             ByteBuffer byteBuffer = ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN);
             byteBuffer.putShort(score);
             byteBuffer.position(0);
@@ -71,8 +71,8 @@ public class ModifyStrategyImpl {
             return data;
         });
     }
-    public static void data(long id,MyUser user,short num) throws Exception {
-        SaveManagement.modify(id,user,challengeScore,"gameProgress", data -> {
+    public static void data(long id, GameUser user, short num) throws Exception {
+        SaveManager.modify(id,user,challengeScore,"gameProgress", data -> {
             try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
                 try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data)) {
                     outputStream.writeBytes(inputStream.readNBytes(8));

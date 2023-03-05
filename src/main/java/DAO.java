@@ -2,37 +2,42 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class Util {
-    private static MyUser myUser;
-    public static HashMap<Long, MyUser> readUser() {
+public class DAO {
+    public static final DAO INSTANCE;
+    static {
         try {
-            Path path = MyPlugin.INSTANCE.resolveDataFile("user.csv").toPath();
-            if (!Files.exists(path)) Files.createFile(path);
-            HashMap<Long, MyUser> users = new HashMap<>();
-            try (Stream<String> stream = Files.lines(path)) {
-                stream.forEach(s -> {
-                    String[] line = s.split(",");
-                    myUser = new MyUser();
-                    myUser.session = line[1];
-                    users.put(Long.valueOf(line[0]), myUser);
-                });
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return users;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            INSTANCE = new DAO();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
-    public static void writeUser() {
+    public final HashMap<Long, GameUser> users;
+    public final HashMap<String,SongInfo> info;
+    private DAO() throws IOException {
+        users = readUser();
+        info = readLevel();
+    }
+    private HashMap<Long, GameUser> readUser() throws IOException {
+        Path path = MyPlugin.INSTANCE.resolveDataFile("user.csv").toPath();
+        HashMap<Long, GameUser> users = new HashMap<>();
+        if (!Files.exists(path)) return users;
+        try (Stream<String> stream = Files.lines(path)) {
+            stream.forEach(s -> {
+                String[] line = s.split(",");
+                GameUser myUser = new GameUser();
+                myUser.session = line[1];
+                users.put(Long.valueOf(line[0]), myUser);
+            });
+        }
+        return users;
+    }
+    public void writeUser() {
         StringBuilder builder = new StringBuilder();
-        for (Map.Entry<Long,MyUser> entry:SenderFacade.users.entrySet()) {
+        for (Map.Entry<Long, GameUser> entry:users.entrySet()) {
             builder.append(String.format("%d,%s\n",entry.getKey(),entry.getValue().session));
         }
         try {
@@ -41,9 +46,9 @@ public class Util {
             e.printStackTrace();
         }
     }
-    public static HashMap<String,SongInfo> readLevel() {
+    private HashMap<String,SongInfo> readLevel() throws IOException {
+        HashMap<String,SongInfo> level = new HashMap<>();
         try (Stream<String> stream = Files.lines(MyPlugin.INSTANCE.resolveDataFile("info.csv").toPath())) {
-            HashMap<String,SongInfo> level = new HashMap<>();
             stream.forEach(s -> {
                 String[] line = s.split(",");
                 SongInfo songInfo = new SongInfo();
@@ -53,11 +58,8 @@ public class Util {
                 }
                 level.put(line[0],songInfo);
             });
-            return level;
-        } catch (IOException e) {
-            e.printStackTrace();
         }
-        return null;
+        return level;
     }
     public static boolean getBit(int data, int index) {return (data & 1 << index) != 0;}
 }

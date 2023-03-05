@@ -1,4 +1,4 @@
-public class MyUser {
+public class GameUser {
     String session;
     String zipUrl;
     long time;

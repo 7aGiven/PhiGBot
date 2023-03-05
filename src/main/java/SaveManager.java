@@ -25,7 +25,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-public class SaveManagement {
+public class SaveManager {
     private static final String baseUrl = "https://phigrosserver.pigeongames.cn/1.1";
     public static final HttpClient client = HttpClient.newHttpClient();
     private static final HttpRequest.Builder globalRequest = HttpRequest.newBuilder().header("X-LC-Id","rAK3FfdieFob2Nn8Am").header("X-LC-Key","Qr9AEqtuoSVS3zeD6iVbM4ZC0AtkJcQ89tywVyi0").header("User-Agent","LeanCloud-CSharp-SDK/1.0.3").header("Accept","application/json");
@@ -37,7 +37,7 @@ public class SaveManagement {
     private static final MessageDigest md5;
     public final SaveModel saveModel;
     private final long id;
-    private final MyUser user;
+    private final GameUser user;
     public byte[] data;
 
     static {
@@ -48,13 +48,13 @@ public class SaveManagement {
             throw new RuntimeException(e);
         }
     }
-    public SaveManagement(long id,MyUser user) throws Exception {
+    public SaveManager(long id, GameUser user) throws Exception {
         this.id = id;
         this.user = user;
         HttpRequest request = globalRequest.copy().header("X-LC-Session",user.session).uri(new URI(save)).build();
         String response = client.send(request,handler).body();
         System.out.println(response);
-        JSONObject json = SaveManagement.save(user.session);
+        JSONObject json = SaveManager.save(user.session);
         SaveModel saveModel = new SaveModel();
         saveModel.summary = json.getString("summary");
         saveModel.objectId = json.getString("objectId");
@@ -69,7 +69,7 @@ public class SaveManagement {
     public static String getZipUrl(String session) throws Exception {
         return save(session).getJSONObject("gameFile").getString("url");
     }
-    public static String update(MyUser user) throws Exception {
+    public static String update(GameUser user) throws Exception {
         JSONObject json = save(user.session);
         user.zipUrl =json.getJSONObject("gameFile").getString("url");
         System.out.println(user.zipUrl);
@@ -101,8 +101,8 @@ public class SaveManagement {
         HttpResponse<String> res = client.send(builder.build(),handler);
         System.out.println(res.body());
     }
-    public static void modify(long id,MyUser user,short challengeScore,String type,ModifyStrategy callback) throws Exception {
-        SaveManagement saveManagement = new SaveManagement(id,user);
+    public static void modify(long id, GameUser user, short challengeScore, String type, ModifyStrategy callback) throws Exception {
+        SaveManager saveManagement = new SaveManager(id,user);
         saveManagement.modify(type,callback);
         saveManagement.uploadZip(challengeScore);
     }
@@ -148,23 +148,12 @@ public class SaveManagement {
             }
         }
     }
-    public void uploadZip() throws Exception {
-        uploadZip((short) 1);
-    }
     public void uploadZip(short score) throws Exception {
         String response;
         HttpRequest.Builder template = globalRequest.copy().header("X-LC-Session",user.session);
 
         ByteBuffer byteBuffer = ByteBuffer.wrap(Base64.getDecoder().decode(saveModel.summary));
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        if (score == 0) {
-            byteBuffer.position(1);
-            score = byteBuffer.getShort();
-            score++;
-            if (score % 100 > 48) {
-                score = (short) (score / 100 * 100 + 3);
-            }
-        }
         byteBuffer.position(1);
         byteBuffer.putShort(score);
         saveModel.summary = Base64.getEncoder().encodeToString(byteBuffer.array());

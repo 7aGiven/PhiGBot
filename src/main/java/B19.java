@@ -15,7 +15,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class B19 {
-    public static final HashMap<String,SongInfo> info = Util.readLevel();
     public static final String[] levels = new String[]{"EZ","HD","IN","AT"};
     private static Image[] ranks;
     private static Image background;
@@ -30,7 +29,7 @@ public class B19 {
         int num = 40;
         for (String id:score) {
             Song song = score.getSong();
-            double[] doubleLevel = info.get(id).level;
+            double[] doubleLevel = DAO.INSTANCE.info.get(id).level;
             for (int i = 0; i < 4; i++) {
                 if (song.get(i).score != 0 && song.get(i).acc >= 70) {
                     double rks = Math.pow((song.get(i).acc - 55) / 45,2) * doubleLevel[i];
@@ -64,7 +63,7 @@ public class B19 {
         }
         return index;
     }
-    public void b19Pic() throws Exception {
+    public void tt() throws Exception {
         StringBuilder builder = new StringBuilder();
         String x;
         builder.append('{');
@@ -91,7 +90,7 @@ public class B19 {
         ArrayList<SongExpect> arrayList = new ArrayList<>();
         for (String id:score) {
             Song song = score.getSong();
-            SongInfo songInfo = info.get(id);
+            SongInfo songInfo = DAO.INSTANCE.info.get(id);
             double[] doubleLevel = songInfo.level;
             for (int i = 0; i < 4; i++) {
                 if (doubleLevel[i] > min) {
@@ -110,11 +109,11 @@ public class B19 {
         arrayList.sort(Comparator.comparing(SongExpect::get));
         ForwardMessageBuilder builder = new ForwardMessageBuilder(user);
         for (SongExpect songExpect:arrayList) {
-            builder.add(user,new PlainText(String.format("%s.%s\nnow：%.2f\nexpect：%.2f",songExpect.name,levels[songExpect.level],songExpect.acc,songExpect.expect)));
+            builder.add(user,new PlainText(String.format("%s %s\nnow：%.2f\nexpect：%.2f",songExpect.name,levels[songExpect.level],songExpect.acc,songExpect.expect)));
         }
         return builder.build();
     }
-    public byte[] tt() throws Exception {
+    public byte[] b19Pic() throws Exception {
         System.out.println(System.currentTimeMillis());
         if (defaultFont == null) {
             defaultFont = Font.createFont(Font.TRUETYPE_FONT,MyPlugin.INSTANCE.resolveDataFile("ukai.ttc")).deriveFont(40f);
@@ -184,7 +183,7 @@ public class B19 {
                 drawer.fillRect(illustrationWidth+10,0,height+200,height);
                 g2d.setComposite(defaultComposite);
                 g2d.setColor(Color.WHITE);
-                drawer.drawString(String.format("%.1f",info.get(songLevel.id).level[songLevel.level]),0,height-5);
+                drawer.drawString(String.format("%.1f",DAO.INSTANCE.info.get(songLevel.id).level[songLevel.level]),0,height-5);
                 int rank;
                 if (songLevel.fc) {
                     if (songLevel.score == 1000000) {

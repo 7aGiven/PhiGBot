@@ -26,11 +26,6 @@ public final class TestCommand extends JRawCommand {
                     sender = CommandSender.of((User) contact,false);
                 }
                 CommandManager.INSTANCE.executeCommand(sender,new PlainText("/help"),true);
-            } else if (args.get(0).contentEquals("read",true)) {
-                Util.readLevel();
-                Util.readUser();
-            } else if (args.get(0).contentEquals("write",true)) {
-                Util.writeUser();
             }
         } else {
             int i = 1;
@@ -59,7 +54,10 @@ public final class TestCommand extends JRawCommand {
             }
             MessageChain chain = context.getOriginalMessage().get(MessageSource.Key).plus(stringBuilder.toString());
             System.out.println(sender);
-            CommandManager.INSTANCE.executeCommand(sender,chain,false);
+            Throwable e = CommandManager.INSTANCE.executeCommand(sender,chain,false).getException();
+            if (e != null) {
+                MyPlugin.INSTANCE.getLogger().warning(e);
+            }
         }
     }
 }
