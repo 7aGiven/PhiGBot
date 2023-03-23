@@ -1,7 +1,4 @@
-import net.mamoe.mirai.console.command.CommandContext;
-import net.mamoe.mirai.console.command.CommandManager;
-import net.mamoe.mirai.console.command.CommandSender;
-import net.mamoe.mirai.console.command.OtherClientCommandSenderOnMessageSync;
+import net.mamoe.mirai.console.command.*;
 import net.mamoe.mirai.console.command.java.JRawCommand;
 import net.mamoe.mirai.contact.*;
 import net.mamoe.mirai.message.data.*;
@@ -15,49 +12,40 @@ public final class TestCommand extends JRawCommand {
 
     @Override
     public void onCommand(@NotNull CommandContext context, @NotNull MessageChain args) {
-        CommandSender sender = context.getSender();
         if (args.size() == 0) return;
-        Contact contact = ((OtherClientCommandSenderOnMessageSync) sender).getFromEvent().getSubject();
-        if (args.size() == 1) {
-            if (args.get(0).contentEquals("help",true)) {
-                if (contact instanceof Group) {
-                    sender = CommandSender.of((Member) ((Group) contact).getBotAsMember());
-                } else {
-                    sender = CommandSender.of((User) contact,false);
-                }
-                CommandManager.INSTANCE.executeCommand(sender,new PlainText("/help"),true);
-            }
-        } else {
-            int i = 1;
-            if (contact instanceof Group) {
-                Group group = (Group) contact;
-                SingleMessage memberMessage = args.get(0);
-                Member member;
-                if (memberMessage instanceof At) {
-                    member = group.getOrFail(((At) memberMessage).getTarget());
-                } else {
-                    member = group.getOrFail(Long.parseLong(memberMessage.contentToString()));
-                }
-                sender = CommandSender.of(member);
+        CommandSender sender = context.getSender();
+        System.out.println(sender);
+        Contact contact = sender.getSubject();
+        int i = 1;
+        if (sender instanceof MemberCommandSender) {
+            Group group = (Group) sender.getSubject();
+            SingleMessage memberMessage = args.get(0);
+            Member member;
+            if (memberMessage instanceof At) {
+                member = group.getOrFail(((At) memberMessage).getTarget());
             } else {
-                i = 0;
-                sender = CommandSender.of((User) contact,false);
+                member = group.getOrFail(Long.parseLong(memberMessage.contentToString()));
             }
-            StringBuilder stringBuilder = new StringBuilder();
-            for (; i < args.size(); i++) {
-                String s = args.get(i).contentToString();
-                if (s.contains(" ")) {
-                    s = "\"" + s + "\"";
-                }
-                stringBuilder.append(s);
-                stringBuilder.append(" ");
+            sender = CommandSender.of(member);
+        } else {
+            i = 0;
+            sender = CommandSender.of((User) contact,false);
+        }
+        StringBuilder stringBuilder = new StringBuilder();
+        for (; i < args.size(); i++) {
+            String s = args.get(i).contentToString();
+            if (s.contains(" ")) {
+                s = "\"" + s + "\"";
             }
-            MessageChain chain = context.getOriginalMessage().get(MessageSource.Key).plus(stringBuilder.toString());
-            System.out.println(sender);
-            Throwable e = CommandManager.INSTANCE.executeCommand(sender,chain,false).getException();
-            if (e != null) {
-                MyPlugin.INSTANCE.getLogger().warning(e);
-            }
+            stringBuilder.append(s);
+            stringBuilder.append(" ");
+        }
+        MessageChain chain = context.getOriginalMessage().get(MessageSource.Key).plus(stringBuilder.toString());
+        System.out.println(sender);
+        Throwable e = CommandManager.INSTANCE.executeCommand(sender,chain,false).getException();
+        if (e != null) {
+            MyPlugin.INSTANCE.getLogger().warning(e);
+            sender.sendMessage(e.toString());
         }
     }
 }

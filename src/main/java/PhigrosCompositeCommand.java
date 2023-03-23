@@ -1,8 +1,7 @@
 import net.mamoe.mirai.console.command.CommandContext;
-import net.mamoe.mirai.console.command.CommandSender;
 import net.mamoe.mirai.console.command.java.JCompositeCommand;
 import net.mamoe.mirai.contact.Group;
-import net.mamoe.mirai.message.data.MessageSource;
+import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.utils.ExternalResource;
 
 import java.io.ByteArrayInputStream;
@@ -12,8 +11,6 @@ import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
@@ -26,30 +23,15 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
     private final String[] challenges = new String[]{"白","绿","蓝","橙","金","彩"};
 
     private PhigrosCompositeCommand() {
-        super(MyPlugin.INSTANCE,"pImpl");
+        super(MyPlugin.INSTANCE,"p");
         setDescription("Phigros机器人");
     }
-    public void bind(CommandSender sender,String session) throws Exception {
+    public void bind(User user, String session) throws Exception {
         GameUser myUser = new GameUser();
         myUser.session = session;
-        myUser.zipUrl = SaveManager.getZipUrl(session);
-        DAO.INSTANCE.users.put(sender.getUser().getId(), myUser);
-        sender.sendMessage("绑定成功");
-    }
-    @SubCommand
-    @Description("绑定")
-    public void bind(CommandContext context, @Name("token")String session) throws Exception {
-        SenderFacade sender = new SenderFacade(context,false);
-        if (sender.subject instanceof Group) {
-            sender.sendMessage("请私聊绑定");
-            MessageSource.recall(context.getOriginalMessage());
-        } else {
-            GameUser myUser = new GameUser();
-            myUser.session = session;
-            myUser.zipUrl = SaveManager.getZipUrl(session);
-            sender.putUser(myUser);
-            sender.sendMessage("绑定成功");
-        }
+        SaveManager.save(session);
+        DAO.INSTANCE.users.put(user.getId(), myUser);
+        user.sendMessage("绑定成功");
     }
     private String update(GameUser user) throws Exception {
         if (user.time == 0) {
@@ -74,21 +56,8 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
         String summary = update(sender.myUser);
         if (summary != null) sender.sendMessage(summary);
         byte[] data = extractZip(sender.myUser.zipUrl, "gameRecord");
-        System.out.println(System.currentTimeMillis());
         data = new B19(data).b19Pic();
-        System.out.println(System.currentTimeMillis());
         ExternalResource ex = ExternalResource.create(data);
-        sender.sendImage(ex);
-    }
-    @SubCommand
-    @Description("B19测试")
-    public void tt(CommandContext context) throws Exception {
-        SenderFacade sender = new SenderFacade(context);
-        String summary = update(sender.myUser);
-        if (summary != null) sender.sendMessage(summary);
-        byte[] data = extractZip(sender.myUser.zipUrl, "gameRecord");
-        new B19(data).tt();
-        ExternalResource ex = ExternalResource.create(MyPlugin.INSTANCE.resolveDataFile("../../../rks-calc-1.1.1/xx.png"));
         sender.sendImage(ex);
     }
     @SubCommand
@@ -100,25 +69,25 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
         byte[] data = extractZip(sender.myUser.zipUrl, "gameRecord");
         sender.sendMessage(new B19(data).expectCalc(sender.user, data));
     }
-    @SubCommand
-    @Description("备份")
-    public void backup(CommandContext context) throws Exception {
-        SenderFacade sender = new SenderFacade(context);
-        update(sender.myUser);
-        Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d.zip",sender.user.getId())).toPath();
-        Files.write(path,getData(sender.myUser.zipUrl),StandardOpenOption.CREATE,StandardOpenOption.WRITE);
-        sender.sendMessage("备份成功");
-    }
-    @SubCommand
-    @Description("恢复备份")
-    public void restore(CommandContext context) throws Exception {
-        SenderFacade sender = new SenderFacade(context);
-        SaveManager saveManagement = new SaveManager(sender.user.getId(),sender.myUser);
-        Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d.zip",sender.user.getId())).toPath();
-        saveManagement.data = Files.readAllBytes(path);
-        saveManagement.uploadZip(ModifyStrategyImpl.challengeScore);
-        sender.sendMessage("恢复成功");
-    }
+//    @SubCommand
+//    @Description("备份")
+//    public void backup(CommandContext context) throws Exception {
+//        SenderFacade sender = new SenderFacade(context);
+//        update(sender.myUser);
+//        Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d.zip",sender.user.getId())).toPath();
+//        Files.write(path,getData(sender.myUser.zipUrl),StandardOpenOption.CREATE,StandardOpenOption.WRITE);
+//        sender.sendMessage("备份成功");
+//    }
+//    @SubCommand
+//    @Description("恢复备份")
+//    public void restore(CommandContext context) throws Exception {
+//        SenderFacade sender = new SenderFacade(context);
+//        SaveManager saveManagement = new SaveManager(sender.user.getId(),sender.myUser);
+//        Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d.zip",sender.user.getId())).toPath();
+//        saveManagement.data = Files.readAllBytes(path);
+//        saveManagement.uploadZip(ModifyStrategyImpl.challengeScore);
+//        sender.sendMessage("恢复成功");
+//    }
     @SubCommand
     @Description("改data")
     public void data(CommandContext context,@Name("MB数")short num) throws Exception {
@@ -165,6 +134,11 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
         }
         ModifyStrategyImpl.challenge(sender.user.getId(),sender.myUser,score);
         sender.sendMessage("课题分修改成功");
+    }
+    @SubCommand
+    @Description("改成绩AP")
+    public void modify(CommandContext context,@Name("歌名") String song,@Name("难度")String levelString) throws Exception {
+        modify(context,song,levelString,1000000,100f,true);
     }
     @SubCommand
     @Description("改成绩")

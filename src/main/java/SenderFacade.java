@@ -1,6 +1,9 @@
 import net.mamoe.mirai.console.command.CommandContext;
+import net.mamoe.mirai.console.command.CommandSender;
+import net.mamoe.mirai.console.command.OtherClientCommandSenderOnMessageSync;
 import net.mamoe.mirai.contact.Contact;
 import net.mamoe.mirai.contact.User;
+import net.mamoe.mirai.event.events.MessageSyncEvent;
 import net.mamoe.mirai.message.data.ForwardMessage;
 import net.mamoe.mirai.message.data.QuoteReply;
 import net.mamoe.mirai.utils.ExternalResource;
@@ -11,21 +14,20 @@ public class SenderFacade {
     private final QuoteReply quoteReply;
     public final Contact subject;
     public final User user;
-    GameUser myUser;
+    public final GameUser myUser;
     public SenderFacade(CommandContext context) throws Exception {
-        this(context,true);
-    }
-    public SenderFacade(CommandContext context,boolean b) throws Exception {
-        quoteReply = new QuoteReply(context.getOriginalMessage());
-        user = context.getSender().getUser();
-        if (b) {
-            myUser = DAO.INSTANCE.users.get(user.getId());
-            if (myUser == null) throw new Exception("您尚未绑定SessionToken");
+        CommandSender sender = context.getSender();
+        if (sender instanceof OtherClientCommandSenderOnMessageSync) {
+            MessageSyncEvent event = ((OtherClientCommandSenderOnMessageSync) sender).getFromEvent();
+            user = event.getSender();
+            subject = event.getSubject();
+        } else {
+            user = sender.getUser();
+            subject = sender.getSubject();
         }
-        subject = context.getSender().getSubject();
-    }
-    public void putUser(GameUser myUser) {
-        DAO.INSTANCE.users.put(user.getId(),myUser);
+        myUser = DAO.INSTANCE.users.get(user.getId());
+        if (myUser == null) throw new Exception("您尚未绑定SessionToken");
+        quoteReply = new QuoteReply(context.getOriginalMessage());
     }
     public void sendMessage(String message) {
         subject.sendMessage(quoteReply.plus(message));

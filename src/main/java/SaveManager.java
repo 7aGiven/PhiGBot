@@ -75,7 +75,7 @@ public class SaveManager {
         System.out.println(user.zipUrl);
         return json.getString("summary");
     }
-    private static JSONObject save(String session) throws Exception {
+    public static JSONObject save(String session) throws Exception {
         HttpRequest request = globalRequest.copy().header("X-LC-Session",session).uri(new URI(save)).build();
         String response = client.send(request,handler).body();
         System.out.println(response);
