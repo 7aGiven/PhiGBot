@@ -27,20 +27,6 @@ public final class MyPlugin extends JavaPlugin {
         EventChannel<BotEvent> channel = GlobalEventChannel.INSTANCE
                 .parentScope(INSTANCE)
                 .filterIsInstance(BotEvent.class);
-        //命令转接
-        channel.subscribeAlways(MessageSyncEvent.class,event -> {
-            CommandSender sender = null;
-            if (event instanceof GroupMessageSyncEvent) {
-                sender = CommandSender.of((Member) event.getSender());
-            } else if (event instanceof GroupTempMessageSyncEvent) {
-                sender = CommandSender.of((NormalMember) event.getSender());
-            }
-            if (sender == null) return;
-            final var exception = CommandManager.INSTANCE.executeCommand(sender,event.getMessage(),false).getException();
-            if (exception == null) return;
-            exception.printStackTrace();
-            event.getSender().sendMessage(exception.toString());
-        });
         //bind命令
         channel.subscribeAlways(UserMessageEvent.class,event -> {
             MessageChain chain = event.getMessage();
@@ -53,21 +39,6 @@ public final class MyPlugin extends JavaPlugin {
                 } catch (Exception e) {
                     event.getSubject().sendMessage(e.toString());
                 }
-            }
-        });
-        //入群申请
-        final var pattern = Pattern.compile("^(?:问题：rks多少？\n答案：)(1?\\d\\.\\d\\d?)$");
-        channel.subscribeAlways(MemberJoinRequestEvent.class, event->{
-            final var matcher = pattern.matcher(event.getMessage());
-            if (matcher.matches() && Float.parseFloat(matcher.group(1)) <= 16.12) {
-                event.accept();
-            } else event.getGroup().sendMessage("新成员来了，快去审核。");
-        });
-        //离群通知
-        channel.subscribeAlways(MemberLeaveEvent.class, event -> {
-            if (event.getGroup().getId() == 282781491 || event.getGroup().getId() == 1047497524) {
-                String nick = event.getMember().getNick();
-                event.getGroup().sendMessage(nick+"离开了。");
             }
         });
         //戳一戳
