@@ -1,14 +1,21 @@
+import given.phigros.PhigrosUser;
+import given.phigros.Util;
 import net.mamoe.mirai.console.command.CommandSender;
 import net.mamoe.mirai.console.command.java.JCompositeCommand;
 import net.mamoe.mirai.message.data.Image;
 import net.mamoe.mirai.utils.ExternalResource;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
 
 public class TestPhigrosCommand extends JCompositeCommand {
     public static final TestPhigrosCommand INSTANCE = new TestPhigrosCommand();
+    public final HttpClient client = HttpClient.newHttpClient();
     private String session;
     private TestPhigrosCommand() {
         super(MyPlugin.INSTANCE,"tp");
@@ -19,8 +26,7 @@ public class TestPhigrosCommand extends JCompositeCommand {
     }
     @SubCommand
     public void b19(CommandSender sender, String zipUrl) throws Exception {
-        byte[] data = PhigrosCompositeCommand.INSTANCE.extractZip(zipUrl, "gameRecord");
-        data = new B19(data).b19Pic();
+        byte[] data = new B19(new PhigrosUser(new URI(zipUrl))).b19Pic();
         ExternalResource ex = ExternalResource.create(data);
         Image image = sender.getSubject().uploadImage(ex);
         sender.sendMessage(image);
@@ -29,12 +35,12 @@ public class TestPhigrosCommand extends JCompositeCommand {
     @SubCommand
     public void deleteFile(CommandSender sender,String objectId) throws Exception {
         if (session == null) return;
-        SaveManager.deleteFile(session,objectId);
+        Util.deleteFile(session,objectId);
     }
     @SubCommand
     public void delete(CommandSender sender,String objectId) throws Exception {
         if (session == null) return;
-        SaveManager.delete(session,objectId);
+        Util.delete(session,objectId);
     }
     @SubCommand
     @Description("备份历史")
@@ -67,20 +73,17 @@ public class TestPhigrosCommand extends JCompositeCommand {
         if (sender == null) return;
         try {
             Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d/%s.zip",sender.getUser().getId(),time)).toPath();
-            SaveManager saveManagement = new SaveManager(sender.getUser().getId(),getUser(sender));
-            saveManagement.data = Files.readAllBytes(path);
-            saveManagement.uploadZip(ModifyStrategyImpl.challengeScore);
+            DAO.INSTANCE.users.get(sender.getUser().getId()).uploadZip(path);
             sender.sendMessage("恢复成功");
         } catch (Exception e) {
             e.printStackTrace();
             sender.sendMessage(e.toString());
         }
     }
-    private GameUser getUser(CommandSender sender) {
-        GameUser user = DAO.INSTANCE.users.get(sender.getUser().getId());
-        if (user == null) {
-            sender.sendMessage("您尚未绑定SessionToken");
-        }
-        return user;
+    @SubCommand
+    @Description("上传图片")
+    public void image(CommandSender sender,String id,Image image) throws Exception {
+        final var handler = HttpResponse.BodyHandlers.ofFile(MyPlugin.INSTANCE.resolveDataFile(String.format("illustration/%s.png",id)).toPath());
+        client.send(HttpRequest.newBuilder(new URI(Image.queryUrl(image))).build(),handler).body();
     }
 }

@@ -1,3 +1,5 @@
+import given.phigros.PhigrosUser;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,29 +17,26 @@ public class DAO {
             throw new RuntimeException(e);
         }
     }
-    public final HashMap<Long, GameUser> users;
-    public final HashMap<String,SongInfo> info;
+    public final HashMap<Long, PhigrosUser> users;
     private DAO() throws IOException {
+        PhigrosUser.readInfo(MyPlugin.INSTANCE.resolveDataPath(Path.of("info.csv")));
         users = readUser();
-        info = readLevel();
     }
-    private HashMap<Long, GameUser> readUser() throws IOException {
+    private HashMap<Long, PhigrosUser> readUser() throws IOException {
         Path path = MyPlugin.INSTANCE.resolveDataFile("user.csv").toPath();
-        HashMap<Long, GameUser> users = new HashMap<>();
+        HashMap<Long, PhigrosUser> users = new HashMap<>();
         if (!Files.exists(path)) return users;
         try (Stream<String> stream = Files.lines(path)) {
             stream.forEach(s -> {
                 String[] line = s.split(",");
-                GameUser myUser = new GameUser();
-                myUser.session = line[1];
-                users.put(Long.valueOf(line[0]), myUser);
+                users.put(Long.valueOf(line[0]), new PhigrosUser(line[1]));
             });
         }
         return users;
     }
     public void writeUser() {
         StringBuilder builder = new StringBuilder();
-        for (Map.Entry<Long, GameUser> entry:users.entrySet()) {
+        for (Map.Entry<Long, PhigrosUser> entry:users.entrySet()) {
             builder.append(String.format("%d,%s\n",entry.getKey(),entry.getValue().session));
         }
         try {
@@ -46,20 +45,4 @@ public class DAO {
             e.printStackTrace();
         }
     }
-    private HashMap<String,SongInfo> readLevel() throws IOException {
-        HashMap<String,SongInfo> level = new HashMap<>();
-        try (Stream<String> stream = Files.lines(MyPlugin.INSTANCE.resolveDataFile("info.csv").toPath())) {
-            stream.forEach(s -> {
-                String[] line = s.split(",");
-                SongInfo songInfo = new SongInfo();
-                songInfo.name = line[1];
-                for (int i = 2; i < line.length; i++) {
-                    songInfo.level[i-2] = Double.valueOf(line[i]);
-                }
-                level.put(line[0],songInfo);
-            });
-        }
-        return level;
-    }
-    public static boolean getBit(int data, int index) {return (data & 1 << index) != 0;}
 }

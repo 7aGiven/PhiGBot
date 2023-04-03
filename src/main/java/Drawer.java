@@ -1,7 +1,7 @@
 import java.awt.*;
 
 public class Drawer {
-    private Graphics2D g2d;
+    private final Graphics2D g2d;
     private int x;
     private int y;
     Drawer(Graphics2D g2d) {this.g2d = g2d;}

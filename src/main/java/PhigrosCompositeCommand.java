@@ -1,13 +1,11 @@
+import given.phigros.PhigrosUser;
+import given.phigros.SongInfo;
 import net.mamoe.mirai.console.command.CommandContext;
 import net.mamoe.mirai.console.command.java.JCompositeCommand;
 import net.mamoe.mirai.contact.Group;
 import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.utils.ExternalResource;
 
-import java.io.ByteArrayInputStream;
-import java.net.URI;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
@@ -15,8 +13,6 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 public final class PhigrosCompositeCommand extends JCompositeCommand {
     public static final PhigrosCompositeCommand INSTANCE = new PhigrosCompositeCommand();
@@ -27,20 +23,13 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
         setDescription("Phigros机器人");
     }
     public void bind(User user, String session) throws Exception {
-        GameUser myUser = new GameUser();
-        myUser.session = session;
-        SaveManager.save(session);
+        PhigrosUser myUser = new PhigrosUser(session);
+        PhigrosUser.validSession(session);
         DAO.INSTANCE.users.put(user.getId(), myUser);
         user.sendMessage("绑定成功");
     }
-    private String update(GameUser user) throws Exception {
-        if (user.time == 0) {
-            user.time = System.currentTimeMillis();
-        }else if (System.currentTimeMillis() - user.time < 90 * 1000) {
-            return null;
-        }
-        System.out.println(user.session);
-        String summary = SaveManager.update(user);
+    private String update(PhigrosUser user) throws Exception {
+        final var summary = user.update();
         System.out.println(summary);
         ByteBuffer byteBuffer = ByteBuffer.wrap(Base64.getDecoder().decode(summary));
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
@@ -54,40 +43,18 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
     public void b19(CommandContext context) throws Exception {
         SenderFacade sender = new SenderFacade(context);
         String summary = update(sender.myUser);
-        if (summary != null) sender.sendMessage(summary);
-        byte[] data = extractZip(sender.myUser.zipUrl, "gameRecord");
-        data = new B19(data).b19Pic();
-        ExternalResource ex = ExternalResource.create(data);
-        sender.sendImage(ex);
+        sender.sendMessage(summary);
+        byte[] data = new B19(sender.myUser).b19Pic();
+        sender.sendImage(ExternalResource.create(data));
     }
     @SubCommand
     @Description("推分")
     public void improve(CommandContext context) throws Exception {
         SenderFacade sender = new SenderFacade(context);
         String summary = update(sender.myUser);
-        if (summary != null) sender.sendMessage(summary);
-        byte[] data = extractZip(sender.myUser.zipUrl, "gameRecord");
-        sender.sendMessage(new B19(data).expectCalc(sender.user, data));
+        sender.sendMessage(summary);
+        sender.sendMessage(new B19(sender.myUser).expectCalc(sender.user));
     }
-//    @SubCommand
-//    @Description("备份")
-//    public void backup(CommandContext context) throws Exception {
-//        SenderFacade sender = new SenderFacade(context);
-//        update(sender.myUser);
-//        Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d.zip",sender.user.getId())).toPath();
-//        Files.write(path,getData(sender.myUser.zipUrl),StandardOpenOption.CREATE,StandardOpenOption.WRITE);
-//        sender.sendMessage("备份成功");
-//    }
-//    @SubCommand
-//    @Description("恢复备份")
-//    public void restore(CommandContext context) throws Exception {
-//        SenderFacade sender = new SenderFacade(context);
-//        SaveManager saveManagement = new SaveManager(sender.user.getId(),sender.myUser);
-//        Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d.zip",sender.user.getId())).toPath();
-//        saveManagement.data = Files.readAllBytes(path);
-//        saveManagement.uploadZip(ModifyStrategyImpl.challengeScore);
-//        sender.sendMessage("恢复成功");
-//    }
     @SubCommand
     @Description("改data")
     public void data(CommandContext context,@Name("MB数")short num) throws Exception {
@@ -96,7 +63,7 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
             sender.sendMessage("不可超过1024MB");
             return;
         }
-        ModifyStrategyImpl.data(sender.user.getId(),sender.myUser,num);
+        sender.myUser.modifyData(num);
         sender.sendMessage("修改data成功");
     }
     @SubCommand
@@ -109,7 +76,7 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
                 return;
             }
         }
-        ModifyStrategyImpl.avater(sender.user.getId(),sender.myUser,avater);
+        sender.myUser.modifyAvater(avater);
         sender.sendMessage("添加头像成功");
     }
     @SubCommand
@@ -122,7 +89,7 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
                 return;
             }
         }
-        ModifyStrategyImpl.collection(sender.user.getId(),sender.myUser,collection);
+        sender.myUser.modifyCollection(collection);
         sender.sendMessage("添加头像成功");
     }
     @SubCommand
@@ -132,7 +99,7 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
         if (score > 599 || score < 0) {
             sender.sendMessage("非法课题分");
         }
-        ModifyStrategyImpl.challenge(sender.user.getId(),sender.myUser,score);
+        sender.myUser.modifyChallenge(score);
         sender.sendMessage("课题分修改成功");
     }
     @SubCommand
@@ -146,7 +113,7 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
         SenderFacade sender = new SenderFacade(context);
         if (!(sender.subject instanceof Group)) throw new Exception("只能在群内发送modify指令");
         final String streamSong = song;
-        Optional<Map.Entry<String, SongInfo>> optional = DAO.INSTANCE.info.entrySet().stream().filter(entry -> entry.getValue().name.equals(streamSong)).findFirst();
+        Optional<Map.Entry<String, SongInfo>> optional = PhigrosUser.info.entrySet().stream().filter(entry -> entry.getValue().name.equals(streamSong)).findFirst();
         if (optional.isPresent()) {
             song = optional.get().getKey();
         } else {
@@ -165,30 +132,7 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
             sender.sendMessage("难度为EZ,HD,IN,AT");
             return;
         }
-        ModifyStrategyImpl.song(sender.user.getId(),sender.myUser, song, level, s, a, fc);
+        sender.myUser.modifySong(song,level,s,a,fc);
         sender.sendMessage(String.format("%s %s %d %.2f %b",song,levelString,s,a,fc));
-    }
-    public byte[] extractZip(String zipUrl,String name) throws Exception {
-        byte[] buffer;
-        try (ByteArrayInputStream reader = new ByteArrayInputStream(getData(zipUrl))) {
-            try (ZipInputStream zipReader = new ZipInputStream(reader)) {
-                while (true) {
-                    ZipEntry entry = zipReader.getNextEntry();
-                    System.out.println(entry);
-                    if (entry.getName().equals(name)) {
-                        break;
-                    }
-                }
-                zipReader.skip(1);
-                buffer = zipReader.readAllBytes();
-                zipReader.closeEntry();
-            }
-        }
-        return SaveManager.decrypt(buffer);
-    }
-    private byte[] getData(String zipUrl) throws Exception {
-        HttpResponse<byte[]> response = SaveManager.client.send(HttpRequest.newBuilder(new URI(zipUrl)).build(),HttpResponse.BodyHandlers.ofByteArray());
-        if (response.statusCode() == 404) throw new Exception("存档文件不存在");
-        return response.body();
     }
 }

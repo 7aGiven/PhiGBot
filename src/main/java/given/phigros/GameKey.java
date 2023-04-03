@@ -1,46 +1,48 @@
+package given.phigros;
+
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Iterator;
 
-public class GameKey implements Iterable<String>{
+class GameKey implements Iterable<String>{
     ByteBuffer reader;
     int dataPosition;
     int globalLength;
-    GameKey(byte[] data) throws Exception {
+    GameKey(byte[] data) {
         globalLength = data.length;
         reader = ByteBuffer.wrap(data);
         reader.order(ByteOrder.LITTLE_ENDIAN);
     }
-    public byte[] getKey() throws Exception {
+    public byte[] getKey() {
         reader.position(dataPosition);
         int key = reader.get();
         byte[] keys = new byte[5];
         for (int i = 0; i < 5; i++) {
-            if (DAO.getBit(key,i)) {
+            if (Util.getBit(key,i)) {
                 keys[i] = reader.get();
             }
         }
         return keys;
     }
-    public byte[] modifyCollection() throws Exception {
+    public byte[] modifyCollection() {
         reader.position(dataPosition);
         int key = reader.get();
-        if (DAO.getBit(key,0)) {
+        if (Util.getBit(key,0)) {
             byte b = (byte) (reader.get()+1);
             reader.position(dataPosition+1);
             reader.put(b);
         }
         return reader.array();
     }
-    public byte[] addCollection(byte[] name) throws Exception {
+    public byte[] addCollection(byte[] name) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         byteArrayOutputStream.write(name.length);
         byteArrayOutputStream.writeBytes(name);
         byteArrayOutputStream.writeBytes(new byte[]{2,1,1});
         return addData(byteArrayOutputStream.toByteArray());
     }
-    public byte[] modifyAvater() throws Exception {
+    public byte[] modifyAvater() {
         byte[] data = new byte[globalLength+1];
         reader.position(0);
         reader.get(data,0,dataPosition-1);
@@ -49,7 +51,7 @@ public class GameKey implements Iterable<String>{
         data[dataPosition] = (byte) (key+16);
         int index = 1;
         for (int i = 0; i < 4; i++) {
-            if (DAO.getBit(key,i)) {
+            if (Util.getBit(key,i)) {
                 data[dataPosition+index] = reader.get();
                 index++;
             }
@@ -58,18 +60,18 @@ public class GameKey implements Iterable<String>{
         reader.get(data,dataPosition+index+1,globalLength-dataPosition-index);
         return data;
     }
-    public byte[] addAvater(byte[] name) throws Exception {
+    public byte[] addAvater(byte[] name) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         byteArrayOutputStream.write(name.length);
         byteArrayOutputStream.writeBytes(name);
         byteArrayOutputStream.writeBytes(new byte[]{2,16,1});
         return addData(byteArrayOutputStream.toByteArray());
     }
-    private byte[] addData(byte[] d) throws Exception {
+    private byte[] addData(byte[] d) {
         reader.position(0);
         byte[] data = new byte[2];
         data[0] = reader.get();
-        int oldLength = DAO.getBit(data[0],7)?2:1;
+        int oldLength = Util.getBit(data[0],7)?2:1;
         int length = oldLength;
         if (oldLength == 2) data[1] = reader.get();
         if (oldLength == 1 && data[0] == Byte.MAX_VALUE) {
@@ -94,7 +96,7 @@ public class GameKey implements Iterable<String>{
         GameKeyIterator() {
             int a = reader.get();
             position = 1;
-            if (DAO.getBit(a,7)) {
+            if (Util.getBit(a,7)) {
                 position = 2;
             }
         }

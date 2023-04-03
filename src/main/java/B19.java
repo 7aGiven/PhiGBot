@@ -1,3 +1,6 @@
+import given.phigros.PhigrosUser;
+import given.phigros.SongExpect;
+import given.phigros.SongLevel;
 import net.mamoe.mirai.console.plugin.jvm.JavaPluginScheduler;
 import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.message.data.ForwardMessage;
@@ -8,115 +11,37 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.io.FileWriter;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Future;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class B19 {
     public static final String[] levels = new String[]{"EZ","HD","IN","AT"};
     private static Image[] ranks;
     private static Image background;
-    private static final ReentrantLock lock = new ReentrantLock();
-    private final SongLevel[] b19 = new SongLevel[20];
+    private final PhigrosUser user;
     private static final Color[] colorLevel = new Color[] {Color.GREEN,Color.BLUE,Color.RED,Color.GRAY};
     private static Font defaultFont;
     private static final SimpleDateFormat format = new SimpleDateFormat("yyyy年MM月dd日hh时");
-    B19(byte[] data) throws Exception {
-        SongLevel phi = new SongLevel();
-        Score score = new Score(data);
-        int num = 40;
-        for (String id:score) {
-            Song song = score.getSong();
-            double[] doubleLevel = DAO.INSTANCE.info.get(id).level;
-            for (int i = 0; i < 4; i++) {
-                if (song.get(i).score != 0 && song.get(i).acc >= 70) {
-                    double rks = Math.pow((song.get(i).acc - 55) / 45,2) * doubleLevel[i];
-                    if (song.get(i).score == 1000000 && rks > phi.rks) {
-                        phi = new SongLevel(id,i,song.get(i).score,song.get(i).acc,song.get(i).fc,rks);
-                    }
-                    if (num > 20) {
-                        b19[40-num] = new SongLevel(id,i,song.get(i).score,song.get(i).acc,song.get(i).fc,rks);
-                        num--;
-                        continue;
-                    }
-                    num = min();
-                    if (rks > b19[num].rks) {
-                        b19[num] = new SongLevel(id,i,song.get(i).score,song.get(i).acc,song.get(i).fc,rks);
-                    }
-                }
-            }
-        }
-        b19[19] = new SongLevel(17);
-        Arrays.sort(b19);
-        b19[0] = phi;
+    B19(PhigrosUser user) {
+        this.user = user;
     }
-    private int min() {
-        int index = -1;
-        double min = 17;
-        for (int i = 0; i < 19; i++) {
-            if (b19[i].rks < min) {
-                index = i;
-                min = b19[i].rks;
-            }
-        }
-        return index;
-    }
-    public void tt() throws Exception {
-        StringBuilder builder = new StringBuilder();
-        String x;
-        builder.append('{');
-        for (SongLevel songLevel:b19) {;
-            if (songLevel.score == 0) break;
-            x = String.format("'%s.0.Record.%s':{'s':%s,'a':%s,'c':%s},",songLevel.id,levels[songLevel.level],songLevel.score,songLevel.acc,songLevel.fc?1:0);
-            builder.append(x);
-        }
-        builder.append('}');
-        lock.lock();
-        try {
-            try (FileWriter writer = new FileWriter(MyPlugin.INSTANCE.resolveDataFile("../../../rks-calc-1.1.1/score.dict"))) {
-                writer.write(builder.toString());
-            }
-            Process p = Runtime.getRuntime().exec("python3 " + MyPlugin.INSTANCE.resolveDataFile("../../../rks-calc-1.1.1/xx.py").getAbsolutePath());
-            p.waitFor();
-        } finally {
-            lock.unlock();
-        }
-    }
-    public ForwardMessage expectCalc(User user, byte[] data) {
-        double min = b19[19].rks;
-        Score score = new Score(data);
-        ArrayList<SongExpect> arrayList = new ArrayList<>();
-        for (String id:score) {
-            Song song = score.getSong();
-            SongInfo songInfo = DAO.INSTANCE.info.get(id);
-            double[] doubleLevel = songInfo.level;
-            for (int i = 0; i < 4; i++) {
-                if (doubleLevel[i] > min) {
-                    float expect = (float) (Math.sqrt(min/doubleLevel[i])*45+55);
-                    if (expect > song.get(i).acc) {
-                        SongExpect songExpect = new SongExpect();
-                        songExpect.name = songInfo.name;
-                        songExpect.level = i;
-                        songExpect.acc = song.get(i).acc;
-                        songExpect.expect = expect;
-                        arrayList.add(songExpect);
-                    }
-                }
-            }
-        }
-        arrayList.sort(Comparator.comparing(SongExpect::get));
+    public ForwardMessage expectCalc(User user) throws Exception {
+        final var expect = this.user.getExpect();
         ForwardMessageBuilder builder = new ForwardMessageBuilder(user);
-        for (SongExpect songExpect:arrayList) {
-            builder.add(user,new PlainText(String.format("%s %s\nnow：%.2f\nexpect：%.2f",songExpect.name,levels[songExpect.level],songExpect.acc,songExpect.expect)));
+        for (SongExpect songExpect:expect) {
+            builder.add(user,new PlainText(String.format("%s %s\nnow：%.3f\nexpect：%.3f",songExpect.name,levels[songExpect.level],songExpect.acc,songExpect.expect)));
         }
         return builder.build();
     }
     public byte[] b19Pic() throws Exception {
+        final var b19 = user.getB19();
         System.out.println(System.currentTimeMillis());
         if (defaultFont == null) {
-            defaultFont = Font.createFont(Font.TRUETYPE_FONT,MyPlugin.INSTANCE.resolveDataFile("ukai.ttc")).deriveFont(40f);
+            try (InputStream inputStream = MyPlugin.INSTANCE.getResourceAsStream("ukai.ttc")) {
+                defaultFont = Font.createFont(Font.TRUETYPE_FONT,inputStream).deriveFont(40f);
+            }
         }
         int imageWidth = 1600;
         int imageHeight = 2300;
@@ -160,8 +85,8 @@ public class B19 {
         int yBlank = 20;
         int xBlank = 100;
         int[] xs = new int[] {xBlank,(imageWidth+xBlank)/2};
-        BufferedImage[] illustrations = new BufferedImage[20];
-        Future<BufferedImage>[] futures = new Future[20];
+        Image[] illustrations = new Image[20];
+        Future<Image>[] futures = new Future[20];
         System.out.println("start");
         System.out.println(System.currentTimeMillis());
         for (int i = 0; i < 20; i++) {
@@ -183,7 +108,7 @@ public class B19 {
                 drawer.fillRect(illustrationWidth+10,0,height+200,height);
                 g2d.setComposite(defaultComposite);
                 g2d.setColor(Color.WHITE);
-                drawer.drawString(String.format("%.1f",DAO.INSTANCE.info.get(songLevel.id).level[songLevel.level]),0,height-5);
+                drawer.drawString(String.format("%.1f",songLevel.difficulty),0,height-5);
                 int rank;
                 if (songLevel.fc) {
                     if (songLevel.score == 1000000) {

@@ -1,3 +1,4 @@
+import given.phigros.PhigrosUser;
 import net.mamoe.mirai.console.command.CommandContext;
 import net.mamoe.mirai.console.command.CommandSender;
 import net.mamoe.mirai.console.command.OtherClientCommandSenderOnMessageSync;
@@ -11,10 +12,10 @@ import net.mamoe.mirai.utils.ExternalResource;
 import java.io.IOException;
 
 public class SenderFacade {
-    private final QuoteReply quoteReply;
-    public final Contact subject;
-    public final User user;
-    public final GameUser myUser;
+    final QuoteReply quoteReply;
+    final Contact subject;
+    final User user;
+    final PhigrosUser myUser;
     public SenderFacade(CommandContext context) throws Exception {
         CommandSender sender = context.getSender();
         if (sender instanceof OtherClientCommandSenderOnMessageSync) {

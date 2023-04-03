@@ -1,4 +1,6 @@
-public class SaveModel {
+package given.phigros;
+
+class SaveModel {
     String objectId;
     String gameObjectId;
     String userObjectId;

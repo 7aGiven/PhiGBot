@@ -1,40 +1,44 @@
+package given.phigros;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.rmi.RemoteException;
 
-public class ModifyStrategyImpl {
+class ModifyStrategyImpl {
     public static final short challengeScore = 3;
-    public static void song(long qqid, GameUser user, String name, int level, int s, float a, boolean fc) throws Exception {
-        SaveManager.modify(qqid,user,challengeScore,"gameRecord", data -> {
+    public static void song(PhigrosUser user, String name, int level, int s, float a, boolean fc) throws IOException, InterruptedException {
+        SaveManager.modify(user,challengeScore,"gameRecord", data -> {
             boolean exist = false;
-            Score score = new Score(data);
+            GameRecord score = new GameRecord(data);
             for (String id:score) {
                 if (name.equals(id)) {
                     exist = true;
-                    Song song = score.getSong();
-                    if (song.get(level).score == 0) {
-                        throw new Exception("您尚未游玩此歌曲的该难度");
+                    SongLevel[] songLevels = score.getSong();
+                    if (songLevels[level].score == 0) {
+                        throw new RuntimeException("您尚未游玩此歌曲的该难度");
                     }
                     data = score.modifySong(level,s,a,fc);
                     break;
                 }
             }
             if (!exist) {
-                throw new Exception("您尚未游玩此歌曲");
+                throw new RuntimeException("您尚未游玩此歌曲");
             }
             return data;
         });
     }
-    public static void avater(long id, GameUser user, String avater) throws Exception {
-        SaveManager.modify(id,user,challengeScore,"gameKey", data -> {
+    public static void avater(PhigrosUser user, String avater) throws IOException, InterruptedException {
+        SaveManager.modify(user,challengeScore,"gameKey", data -> {
             GameKey gameKey = new GameKey(data);
             boolean exist = false;
             for (String key:gameKey) {
                 if (key.equals(avater)) {
                     exist = true;
                     data = gameKey.getKey();
-                    if (data[4] == 1) throw new Exception("您已经拥有该头像");
+                    if (data[4] == 1) throw new RuntimeException("您已经拥有该头像");
                     data = gameKey.modifyAvater();
                     break;
                 }
@@ -45,8 +49,8 @@ public class ModifyStrategyImpl {
             return data;
         });
     }
-    public static void collection(long id, GameUser user, String collection) throws Exception {
-        SaveManager.modify(id,user,challengeScore,"gameKey", data -> {
+    public static void collection(PhigrosUser user, String collection) throws IOException, InterruptedException {
+        SaveManager.modify(user,challengeScore,"gameKey", data -> {
             GameKey gameKey = new GameKey(data);
             boolean exist = false;
             for (String key:gameKey) {
@@ -62,8 +66,8 @@ public class ModifyStrategyImpl {
             return data;
         });
     }
-    public static void challenge(long id, GameUser user, short score) throws Exception {
-        SaveManager.modify(id,user,challengeScore,"gameProgress", data -> {
+    public static void challenge(PhigrosUser user, short score) throws IOException, InterruptedException {
+        SaveManager.modify(user,challengeScore,"gameProgress", data -> {
             ByteBuffer byteBuffer = ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN);
             byteBuffer.putShort(score);
             byteBuffer.position(0);
@@ -71,8 +75,8 @@ public class ModifyStrategyImpl {
             return data;
         });
     }
-    public static void data(long id, GameUser user, short num) throws Exception {
-        SaveManager.modify(id,user,challengeScore,"gameProgress", data -> {
+    public static void data(PhigrosUser user, short num) throws IOException, InterruptedException {
+        SaveManager.modify(user,challengeScore,"gameProgress", data -> {
             try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
                 try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data)) {
                     outputStream.writeBytes(inputStream.readNBytes(8));

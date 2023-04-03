@@ -1,3 +1,5 @@
+package given.phigros;
+
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
@@ -7,15 +9,13 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
@@ -25,7 +25,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-public class SaveManager {
+class SaveManager {
     private static final String baseUrl = "https://phigrosserver.pigeongames.cn/1.1";
     public static final HttpClient client = HttpClient.newHttpClient();
     private static final HttpRequest.Builder globalRequest = HttpRequest.newBuilder().header("X-LC-Id","rAK3FfdieFob2Nn8Am").header("X-LC-Key","Qr9AEqtuoSVS3zeD6iVbM4ZC0AtkJcQ89tywVyi0").header("User-Agent","LeanCloud-CSharp-SDK/1.0.3").header("Accept","application/json");
@@ -36,8 +36,7 @@ public class SaveManager {
     private static final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
     private static final MessageDigest md5;
     public final SaveModel saveModel;
-    private final long id;
-    private final GameUser user;
+    private final PhigrosUser user;
     public byte[] data;
 
     static {
@@ -48,10 +47,9 @@ public class SaveManager {
             throw new RuntimeException(e);
         }
     }
-    public SaveManager(long id, GameUser user) throws Exception {
-        this.id = id;
+    public SaveManager(PhigrosUser user) throws IOException, InterruptedException {
         this.user = user;
-        HttpRequest request = globalRequest.copy().header("X-LC-Session",user.session).uri(new URI(save)).build();
+        HttpRequest request = globalRequest.copy().header("X-LC-Session",user.session).uri(URI.create(save)).build();
         String response = client.send(request,handler).body();
         System.out.println(response);
         JSONObject json = SaveManager.save(user.session);
@@ -63,25 +61,25 @@ public class SaveManager {
         saveModel.gameObjectId = json.getString("objectId");
         saveModel.updatedTime = json.getString("updatedAt");
         saveModel.checksum = json.getJSONObject("metaData").getString("_checksum");
-        user.zipUrl = json.getString("url");
+        user.zipUrl = URI.create(json.getString("url"));
         this.saveModel = saveModel;
     }
     public static String getZipUrl(String session) throws Exception {
         return save(session).getJSONObject("gameFile").getString("url");
     }
-    public static String update(GameUser user) throws Exception {
+    public static String update(PhigrosUser user) throws IOException, InterruptedException {
         JSONObject json = save(user.session);
-        user.zipUrl =json.getJSONObject("gameFile").getString("url");
+        user.zipUrl = URI.create(json.getJSONObject("gameFile").getString("url"));
         System.out.println(user.zipUrl);
         return json.getString("summary");
     }
-    public static JSONObject save(String session) throws Exception {
-        HttpRequest request = globalRequest.copy().header("X-LC-Session",session).uri(new URI(save)).build();
+    public static JSONObject save(String session) throws IOException, InterruptedException {
+        HttpRequest request = globalRequest.copy().header("X-LC-Session",session).uri(URI.create(save)).build();
         String response = client.send(request,handler).body();
         System.out.println(response);
         JSONArray array = JSON.parseObject(response).getJSONArray("results");
         if (array.size() != 1) {
-            throw new Exception("存档有误，请修复存档");
+            throw new RuntimeException("存档有误，请修复存档");
         }
         return array.getJSONObject(0);
     }
@@ -101,22 +99,16 @@ public class SaveManager {
         HttpResponse<String> res = client.send(builder.build(),handler);
         System.out.println(res.body());
     }
-    public static void modify(long id, GameUser user, short challengeScore, String type, ModifyStrategy callback) throws Exception {
-        SaveManager saveManagement = new SaveManager(id,user);
+    public static void modify(PhigrosUser user, short challengeScore, String type, ModifyStrategy callback) throws IOException, InterruptedException {
+        SaveManager saveManagement = new SaveManager(user);
         saveManagement.modify(type,callback);
         saveManagement.uploadZip(challengeScore);
     }
-    public void modify(String type, ModifyStrategy callback) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder(new URI(user.zipUrl)).build();
+    public void modify(String type, ModifyStrategy callback) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(user.zipUrl).build();
         data = client.send(request,HttpResponse.BodyHandlers.ofByteArray()).body();
         md5.reset();
-        if (!md5(data).equals(saveModel.checksum)) throw new Exception("文件校验不一致");
-        Path path = MyPlugin.INSTANCE.resolveDataPath(String.format("backup/%d",id));
-        if (!Files.isDirectory(path)) {
-            Files.createDirectory(path);
-        }
-        path = MyPlugin.INSTANCE.resolveDataPath(String.format("backup/%d/%s.zip",id,saveModel.updatedTime));
-        Files.write(path,data,StandardOpenOption.CREATE,StandardOpenOption.WRITE);
+        if (!md5(data).equals(saveModel.checksum)) throw new RuntimeException("文件校验不一致");
         try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data)) {
             try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream(inputStream.available())) {
                 try (ZipOutputStream zipWriter = new ZipOutputStream(outputStream)) {
@@ -148,7 +140,7 @@ public class SaveManager {
             }
         }
     }
-    public void uploadZip(short score) throws Exception {
+    public void uploadZip(short score) throws IOException, InterruptedException {
         String response;
         HttpRequest.Builder template = globalRequest.copy().header("X-LC-Session",user.session);
 
@@ -163,7 +155,7 @@ public class SaveManager {
 
         md5.reset();
         HttpRequest.Builder builder = template.copy();
-        builder.uri(new URI(fileTokens));
+        builder.uri(URI.create(fileTokens));
         builder.POST(HttpRequest.BodyPublishers.ofString(String.format("{\"name\":\".save\",\"__type\":\"File\",\"ACL\":{\"%s\":{\"read\":true,\"write\":true}},\"prefix\":\"gamesaves\",\"metaData\":{\"size\":%d,\"_checksum\":\"%s\",\"prefix\":\"gamesaves\"}}",saveModel.userObjectId,data.length, md5(data))));
         response = client.send(builder.build(),handler).body();
         String tokenKey = Base64.getEncoder().encodeToString(JSON.parseObject(response).getString("key").getBytes());
@@ -173,7 +165,7 @@ public class SaveManager {
 
 
 
-        builder = HttpRequest.newBuilder(new URI(String.format("https://upload.qiniup.com/buckets/rAK3Ffdi/objects/%s/uploads", tokenKey)));
+        builder = HttpRequest.newBuilder(URI.create(String.format("https://upload.qiniup.com/buckets/rAK3Ffdi/objects/%s/uploads", tokenKey)));
         builder.header("Authorization",authorization);
         builder.POST(HttpRequest.BodyPublishers.noBody());
         response = client.send(builder.build(),handler).body();
@@ -182,7 +174,7 @@ public class SaveManager {
 
 
 
-        builder = HttpRequest.newBuilder(new URI(String.format("https://upload.qiniup.com/buckets/rAK3Ffdi/objects/%s/uploads/%s/1",tokenKey,uploadId)));
+        builder = HttpRequest.newBuilder(URI.create(String.format("https://upload.qiniup.com/buckets/rAK3Ffdi/objects/%s/uploads/%s/1",tokenKey,uploadId)));
         builder.header("Authorization",authorization);
         builder.header("Content-Type","application/octet-stream");
         builder.PUT(HttpRequest.BodyPublishers.ofByteArray(data));
@@ -192,7 +184,7 @@ public class SaveManager {
 
 
 
-        builder = HttpRequest.newBuilder(new URI(String.format("https://upload.qiniup.com/buckets/rAK3Ffdi/objects/%s/uploads/%s",tokenKey,uploadId)));
+        builder = HttpRequest.newBuilder(URI.create(String.format("https://upload.qiniup.com/buckets/rAK3Ffdi/objects/%s/uploads/%s",tokenKey,uploadId)));
         builder.header("Authorization",authorization);
         builder.header("Content-Type","application/json");
         builder.POST(HttpRequest.BodyPublishers.ofString(String.format("{\"parts\":[{\"partNumber\":1,\"etag\":\"%s\"}]}",etag)));
@@ -201,7 +193,7 @@ public class SaveManager {
 
 
         builder = template.copy();
-        builder.uri(new URI(fileCallback));
+        builder.uri(URI.create(fileCallback));
         builder.header("Content-Type","application/json");
         builder.POST(HttpRequest.BodyPublishers.ofString(String.format("{\"result\":true,\"token\":\"%s\"}",tokenKey)));
         client.send(builder.build(),HttpResponse.BodyHandlers.discarding());
@@ -209,7 +201,7 @@ public class SaveManager {
 
 
         builder = template.copy();
-        builder.uri(new URI(String.format(baseUrl + "/classes/_GameSave/%s?",saveModel.objectId)));
+        builder.uri(URI.create(String.format(baseUrl + "/classes/_GameSave/%s?",saveModel.objectId)));
         builder.header("Content-Type","application/json");
         builder.PUT(HttpRequest.BodyPublishers.ofString(String.format("{\"summary\":\"%s\",\"modifiedAt\":{\"__type\":\"Date\",\"iso\":\"%sZ\"},\"gameFile\":{\"__type\":\"Pointer\",\"className\":\"_File\",\"objectId\":\"%s\"},\"ACL\":{\"%s\":{\"read\":true,\"write\":true}},\"user\":{\"__type\":\"Pointer\",\"className\":\"_User\",\"objectId\":\"%s\"}}",saveModel.summary,format.format(new Date()),newGameObjectId,saveModel.userObjectId,saveModel.userObjectId)));
         response = client.send(builder.build(),HttpResponse.BodyHandlers.ofString()).body();
@@ -218,28 +210,33 @@ public class SaveManager {
 
 
         builder = template.copy();
-        builder.uri(new URI(String.format(baseUrl + "/files/%s",saveModel.gameObjectId)));
+        builder.uri(URI.create(String.format(baseUrl + "/files/%s",saveModel.gameObjectId)));
         builder.DELETE();
         response = client.send(builder.build(),HttpResponse.BodyHandlers.ofString()).body();
         System.out.println(response);
 
     }
-    public static byte[] decrypt(byte[] data) throws Exception {
-        byte[] key = new byte[] {-24,-106,-102,-46,-91,64,37,-101,-105,-111,-112,-117,-120,-26,-65,3,30,109,33,-107,110,-6,-42,-118,80,-35,85,-42,122,-80,-110,75};
-        byte[] iv = new byte[] {42,79,-16,-118,-56,13,99,7,0,87,-59,-107,24,-56,50,83};
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key,"AES"),new IvParameterSpec(iv));
-        return cipher.doFinal(data);
+    private static final byte[] key = new byte[] {-24,-106,-102,-46,-91,64,37,-101,-105,-111,-112,-117,-120,-26,-65,3,30,109,33,-107,110,-6,-42,-118,80,-35,85,-42,122,-80,-110,75};
+    private static final byte[] iv = new byte[] {42,79,-16,-118,-56,13,99,7,0,87,-59,-107,24,-56,50,83};
+    public static byte[] decrypt(byte[] data) {
+        try {
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key,"AES"),new IvParameterSpec(iv));
+            return cipher.doFinal(data);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
-
-    public static byte[] encrypt(byte[] data) throws Exception {
-        byte[] key = new byte[] {-24,-106,-102,-46,-91,64,37,-101,-105,-111,-112,-117,-120,-26,-65,3,30,109,33,-107,110,-6,-42,-118,80,-35,85,-42,122,-80,-110,75};
-        byte[] iv = new byte[] {42,79,-16,-118,-56,13,99,7,0,87,-59,-107,24,-56,50,83};
-        Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key,"AES"),new IvParameterSpec(iv));
-        return cipher.doFinal(data);
+    public static byte[] encrypt(byte[] data) {
+        try {
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key,"AES"),new IvParameterSpec(iv));
+            return cipher.doFinal(data);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
-    private static String md5(byte[] data) {
+    private String md5(byte[] data) {
         md5.reset();
         data = md5.digest(data);
         StringBuilder builder = new StringBuilder();
