@@ -16,11 +16,8 @@ class ModifyStrategyImpl {
             for (String id:score) {
                 if (name.equals(id)) {
                     exist = true;
-                    SongLevel[] songLevels = score.getSong();
-                    if (songLevels[level].score == 0) {
-                        throw new RuntimeException("您尚未游玩此歌曲的该难度");
-                    }
-                    data = score.modifySong(level,s,a,fc);
+                    score.modifySong(level,s,a,fc);
+                    data = score.getData();
                     break;
                 }
             }
