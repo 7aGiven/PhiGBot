@@ -16,6 +16,24 @@ public class GameSettings {
         reader.get(data);
         return new String(data);
     }
+    float getBeiJingLiangDu() {
+        return getItem(0);
+    }
+    float getYinYueYinLiang() {
+        return getItem(1);
+    }
+    float getJieMianYinXiaoYinLiang() {
+        return getItem(2);
+    }
+    float getDaJiYinXiaoYinLiang() {
+        return getItem(3);
+    }
+    float getPuMianYanChi() {
+        return getItem(4);
+    }
+    float getAnJianSuoFang() {
+        return getItem(5);
+    }
     private float getItem(int index) {
         reader.position(1);
         reader.position(reader.get() + 2);

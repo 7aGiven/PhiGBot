@@ -1,11 +1,13 @@
 import given.phigros.PhigrosUser;
 import given.phigros.SongInfo;
 import net.mamoe.mirai.console.command.CommandContext;
+import net.mamoe.mirai.console.command.CommandSender;
 import net.mamoe.mirai.console.command.java.JCompositeCommand;
 import net.mamoe.mirai.contact.Group;
 import net.mamoe.mirai.contact.User;
 import net.mamoe.mirai.utils.ExternalResource;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
