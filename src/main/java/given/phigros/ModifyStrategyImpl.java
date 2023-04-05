@@ -1,11 +1,6 @@
 package given.phigros;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.rmi.RemoteException;
 
 class ModifyStrategyImpl {
     public static final short challengeScore = 3;
@@ -34,14 +29,16 @@ class ModifyStrategyImpl {
             for (String key:gameKey) {
                 if (key.equals(avater)) {
                     exist = true;
-                    data = gameKey.getKey();
-                    if (data[4] == 1) throw new RuntimeException("您已经拥有该头像");
-                    data = gameKey.modifyAvater();
+                    if (gameKey.getKey(4) == 1)
+                        throw new RuntimeException("您已经拥有该头像");
+                    gameKey.setKey(4,1);
+                    data = gameKey.getData();
                     break;
                 }
             }
             if (!exist) {
-                data = gameKey.addAvater(avater.getBytes());
+                gameKey.addKey(avater, new byte[] {16, 1});
+                data = gameKey.getData();
             }
             return data;
         });
@@ -53,49 +50,30 @@ class ModifyStrategyImpl {
             for (String key:gameKey) {
                 if (key.equals(collection)) {
                     exist = true;
-                    data = gameKey.modifyCollection();
+                    gameKey.setKey(2, gameKey.getKey(2) +  1);
+                    data = gameKey.getData();
                     break;
                 }
             }
             if (!exist) {
-                data = gameKey.addCollection(collection.getBytes());
+                gameKey.addKey(collection, new byte[] {4, 1});
+                data = gameKey.getData();
             }
             return data;
         });
     }
     public static void challenge(PhigrosUser user, short score) throws IOException, InterruptedException {
         SaveManager.modify(user,challengeScore,"gameProgress", data -> {
-            ByteBuffer byteBuffer = ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN);
-            byteBuffer.putShort(score);
-            byteBuffer.position(0);
-            byteBuffer.get(data,6,2);
-            return data;
+            final var gameProgress = new GameProgress(data);
+            gameProgress.setChallenge(score);
+            return gameProgress.getData();
         });
     }
     public static void data(PhigrosUser user, short num) throws IOException, InterruptedException {
         SaveManager.modify(user,challengeScore,"gameProgress", data -> {
-            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-                try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data)) {
-                    outputStream.writeBytes(inputStream.readNBytes(8));
-                    for (int i = 0; i < 5; i++) {
-                        while (true) {
-                            if (inputStream.read() > 0) {
-                                break;
-                            }
-                        }
-                    }
-                    outputStream.writeBytes(new byte[1]);
-                    if (num < 128) {
-                        outputStream.write(num);
-                    } else {
-                        outputStream.writeBytes(new byte[]{(byte) (num%128|-128),(byte) (num/128)});
-                    }
-                    outputStream.writeBytes(new byte[3]);
-                    outputStream.writeBytes(inputStream.readNBytes(inputStream.available()));
-                }
-                data = outputStream.toByteArray();
-            }
-            return data;
+            final var gameProgress = new GameProgress(data);
+            gameProgress.setGameData(num);
+            return gameProgress.getData();
         });
     }
 }

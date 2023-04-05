@@ -20,6 +20,8 @@ public class PhigrosUser {
     public long time;
     public final static HashMap<String,SongInfo> info = new HashMap<>();
     public PhigrosUser(String session) {
+        if (!session.matches("[a-z0-9]{25}"))
+            throw new RuntimeException("SessionToken格式错误。");
         this.session = session;
     }
     public PhigrosUser(URI zipUrl) {this.zipUrl = zipUrl;}
@@ -102,6 +104,9 @@ public class PhigrosUser {
                 break;
         Arrays.sort(b19,1,num);
         return b19;
+    }
+    public void key() throws IOException, InterruptedException {
+        new GameKey(extractZip("gameKey"));
     }
     public void modifyData(short num) throws Exception {
         ModifyStrategyImpl.data(this,num);

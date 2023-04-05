@@ -5,6 +5,7 @@ import net.mamoe.mirai.console.command.java.JCompositeCommand;
 import net.mamoe.mirai.message.data.Image;
 import net.mamoe.mirai.utils.ExternalResource;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -85,5 +86,9 @@ public class TestPhigrosCommand extends JCompositeCommand {
     public void image(CommandSender sender,String id,Image image) throws Exception {
         final var handler = HttpResponse.BodyHandlers.ofFile(MyPlugin.INSTANCE.resolveDataFile(String.format("illustration/%s.png",id)).toPath());
         client.send(HttpRequest.newBuilder(new URI(Image.queryUrl(image))).build(),handler).body();
+    }
+    @SubCommand
+    public void key(CommandSender sender,String zipUrl) throws IOException, InterruptedException {
+        new PhigrosUser(URI.create(zipUrl)).key();
     }
 }
