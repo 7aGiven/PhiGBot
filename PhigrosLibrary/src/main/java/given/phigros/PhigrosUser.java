@@ -1,10 +1,13 @@
 package given.phigros;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -32,81 +35,61 @@ public class PhigrosUser {
             throw new RuntimeException("更新间隔在90秒以内。");
         return SaveManager.update(this);
     }
-    public static void readInfo(Path path) throws IOException {
+    public static void readInfo(BufferedReader reader) throws IOException {
         info.clear();
-        try (Stream<String> stream = Files.lines(path)) {
-            stream.forEach(s -> {
-                String[] line = s.split(",");
-                SongInfo songInfo = new SongInfo();
-                songInfo.name = line[1];
-                for (int i = 2; i < line.length; i++) {
-                    songInfo.level[i-2] = Float.parseFloat(line[i]);
-                }
-                info.put(line[0],songInfo);
-            });
+        while (true) {
+            String lineString = reader.readLine();
+            if (lineString == null)
+                break;
+            String[] line = lineString.split(",");
+            SongInfo songInfo = new SongInfo();
+            songInfo.name = line[1];
+            for (int i = 2; i < line.length; i++) {
+                songInfo.level[i-2] = Float.parseFloat(line[i]);
+            }
+            info.put(line[0],songInfo);
         }
+    }
+    static SongInfo getInfo(String id) {
+        final var songInfo = info.get(id);
+        if (songInfo == null)
+            throw new RuntimeException(String.format("缺少%s的信息。", id));
+        return songInfo;
     }
     public static void validSession(String session) throws IOException, InterruptedException {
         SaveManager.save(session);
     }
     public SongLevel[] getB19() throws IOException, InterruptedException {
-        return b19(extractZip("gameRecord"));
+        return getGameRecord().getB19();
     }
+//    private SongLevel[] b19(byte[] data) {
+//        final var b19 = new SongLevel[20];
+//        final var reader = ByteBuffer.wrap(data);
+//        reader.position(Util.getBit(data[0],7) ? 2 : 1);
+//        byte length = reader.get();
+//        String id = new String(data, reader.position(), length - 2);
+//        reader.position(reader.position() + length + 1);
+//        length = reader.get();
+//        int fc = reader.get();
+//        for (int i = 0; i < 4; i++) {
+//            if (Util.getBit(length, i)) {
+//
+//            }
+//        }
+//        int start;
+//        while (position != data.length){
+//            start = position;
+//            position += data[position] + 1;
+//            position += data[position] + 1;
+//            byte[] tmp = new byte[position - start];
+//            System.arraycopy(data, start, tmp, 0, position - start);
+//        }
+//    }
     public SongExpect[] getExpect() throws IOException, InterruptedException {
-        byte[] data = extractZip("gameRecord");
-        float min = b19(data)[19].rks;
-        final var gameRecord = new GameRecord(data);
-        final ArrayList<SongExpect> arrayList = new ArrayList<>();
-        for (String id:gameRecord) {
-            final var songLevels = gameRecord.getSong();
-            final var songInfo = PhigrosUser.info.get(id);
-            for (int i = 0; i < 4; i++) {
-                if (songLevels[i] == null || songInfo.level[i] < min)
-                    continue;
-                final var expect = (float) Math.sqrt(min/songInfo.level[i])*45+55;
-                if (expect > songLevels[i].acc)
-                    arrayList.add(new SongExpect(songInfo.name,i,songLevels[i].acc,expect));
-            }
-        }
-        final var array = arrayList.toArray(SongExpect[]::new);
-        Arrays.sort(array);
-        return array;
+        return getGameRecord().getExpect();
     }
-    private SongLevel[] b19(byte[] data) {
-        final var gameRecord = new GameRecord(data);
-        final var b19 = new SongLevel[20];
-        int num;
-        for (String id:gameRecord) {
-            SongLevel[] songLevels = gameRecord.getSong();
-            SongInfo songInfo = PhigrosUser.info.get(id);
-            if (songInfo == null) throw new NullPointerException(String.format("不存在%s的定数",id));
-            for (int i = 0; i < 4; i++) {
-                if (songLevels[i] == null)
-                    continue;
-                if (songLevels[i].score != 0 && songLevels[i].acc >= 70) {
-                    final var difficulty = songInfo.level[i];
-                    final var rks = (float) Math.pow((songLevels[i].acc - 55) / 45,2) * difficulty;
-                    if (b19[0] == null || songLevels[i].score == 1000000 && rks > b19[0].rks) {
-                        b19[0] = songLevels[i];
-                        b19[0].set(id,i,difficulty,rks);
-                    }
-                    num = min(b19);
-                    if (num == -1) continue;
-                    if (b19[num] == null || rks > b19[num].rks) {
-                        b19[num] = songLevels[i];
-                        b19[num].set(id,i,difficulty,rks);
-                    }
-                }
-            }
-        }
-        for (num = 1; num < 20; num++)
-            if (b19[num] == null)
-                break;
-        Arrays.sort(b19,1,num);
-        return b19;
-    }
-    public void key() throws IOException, InterruptedException {
-        new GameKey(extractZip("gameKey"));
+    public GameRecord getGameRecord() throws IOException, InterruptedException {
+        return new GameRecord(extractZip("gameRecord"));
     }
     public void modifyData(short num) throws Exception {
         ModifyStrategyImpl.data(this,num);
@@ -130,18 +113,6 @@ public class PhigrosUser {
         SaveManager saveManager = new SaveManager(this);
         saveManager.data = Files.readAllBytes(path);
         saveManager.uploadZip((short) 3);
-    }
-    private int min(SongLevel[] array) {
-        int index = -1;
-        double min = 17;
-        for (int i = 1; i < 20; i++) {
-            if (array[i] == null) return i;
-            if (array[i].rks < min) {
-                index = i;
-                min = array[i].rks;
-            }
-        }
-        return index;
     }
     private byte[] extractZip(String name) throws IOException, InterruptedException {
         byte[] buffer;

@@ -5,16 +5,16 @@ class GameProgress {
     GameProgress(byte[] data) {
         this.data = data;
     }
-    short getChallenge() {
+    public short getChallenge() {
         return (short) (data[7] * 256 + data[6]);
     }
-    void setChallenge(short score) {
+    public void setChallenge(short score) {
         if (score >= 600)
             throw new RuntimeException("score不允许超过600");
         data[6] = (byte) (score % 256);
         data[7] = (byte) (score /256);
     }
-    int getGameData() {
+    public int getGameData() {
         int index = 8;
         int sum = 0;
         int num;
@@ -25,7 +25,9 @@ class GameProgress {
         }
         return sum;
     }
-    void setGameData(short MB) {
+    public void setGameData(short MB) {
+        if (MB >= 1024)
+            throw new RuntimeException("MB不可超过1024");
         int index = 8;
         for (int i = 0; i < 5; i++)
             index += Util.getBit(data[index], 7) ? 2 : 1;
@@ -36,7 +38,7 @@ class GameProgress {
             bytes = new byte[] {0, (byte) (MB % 128 + 128), (byte) (MB / 128), 0, 0, 0};
         data = Util.modifyBytes(data, 8, index - 8, bytes);
     }
-    byte[] getData() {
+    public byte[] getData() {
         return data;
     }
 }

@@ -5,13 +5,13 @@ public class GameUser {
     GameUser(byte[] data) {
         this.data = data;
     }
-    String getIntroduction() {
+    public String getIntroduction() {
         return getItem(0);
     }
-    String getAvater() {
+    public String getAvater() {
         return getItem(1);
     }
-    String getIllustration() {
+    public String getIllustration() {
         return getItem(2);
     }
     private String getItem(int index) {

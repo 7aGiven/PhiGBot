@@ -9,29 +9,29 @@ public class GameSettings {
         reader = ByteBuffer.wrap(data);
         reader.order(ByteOrder.LITTLE_ENDIAN);
     }
-    String getPhone() {
+    public String getDevice() {
         reader.position(1);
         int length = reader.get();
         byte[] data = new byte[length];
         reader.get(data);
         return new String(data);
     }
-    float getBeiJingLiangDu() {
+    public float 背景亮度() {
         return getItem(0);
     }
-    float getYinYueYinLiang() {
+    public float 音乐音量() {
         return getItem(1);
     }
-    float getJieMianYinXiaoYinLiang() {
+    public float 界面音效音量() {
         return getItem(2);
     }
-    float getDaJiYinXiaoYinLiang() {
+    public float 打击音效音量() {
         return getItem(3);
     }
-    float getPuMianYanChi() {
+    public float 铺面延迟() {
         return getItem(4);
     }
-    float getAnJianSuoFang() {
+    public float 按键缩放() {
         return getItem(5);
     }
     private float getItem(int index) {

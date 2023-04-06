@@ -87,8 +87,4 @@ public class TestPhigrosCommand extends JCompositeCommand {
         final var handler = HttpResponse.BodyHandlers.ofFile(MyPlugin.INSTANCE.resolveDataFile(String.format("illustration/%s.png",id)).toPath());
         client.send(HttpRequest.newBuilder(new URI(Image.queryUrl(image))).build(),handler).body();
     }
-    @SubCommand
-    public void key(CommandSender sender,String zipUrl) throws IOException, InterruptedException {
-        new PhigrosUser(URI.create(zipUrl)).key();
-    }
 }

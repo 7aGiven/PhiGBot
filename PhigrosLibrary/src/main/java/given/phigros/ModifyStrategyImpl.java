@@ -7,12 +7,12 @@ class ModifyStrategyImpl {
     public static void song(PhigrosUser user, String name, int level, int s, float a, boolean fc) throws IOException, InterruptedException {
         SaveManager.modify(user,challengeScore,"gameRecord", data -> {
             boolean exist = false;
-            GameRecord score = new GameRecord(data);
-            for (String id:score) {
-                if (name.equals(id)) {
+            GameRecord gameRecord = new GameRecord(data);
+            for (GameRecordItem item:gameRecord) {
+                if (item.getId().equals(name)) {
                     exist = true;
-                    score.modifySong(level,s,a,fc);
-                    data = score.getData();
+                    item.modifySong(level,s,a,fc);
+                    data = gameRecord.getData();
                     break;
                 }
             }
@@ -26,12 +26,12 @@ class ModifyStrategyImpl {
         SaveManager.modify(user,challengeScore,"gameKey", data -> {
             GameKey gameKey = new GameKey(data);
             boolean exist = false;
-            for (String key:gameKey) {
-                if (key.equals(avater)) {
+            for (GameKeyItem item:gameKey) {
+                if (item.getId().equals(avater)) {
                     exist = true;
-                    if (gameKey.getKey(4) == 1)
+                    if (item.getAvater())
                         throw new RuntimeException("您已经拥有该头像");
-                    gameKey.setKey(4,1);
+                    item.setAvater(true);
                     data = gameKey.getData();
                     break;
                 }
@@ -47,10 +47,10 @@ class ModifyStrategyImpl {
         SaveManager.modify(user,challengeScore,"gameKey", data -> {
             GameKey gameKey = new GameKey(data);
             boolean exist = false;
-            for (String key:gameKey) {
-                if (key.equals(collection)) {
+            for (GameKeyItem item:gameKey) {
+                if (item.getId().equals(collection)) {
                     exist = true;
-                    gameKey.setKey(2, gameKey.getKey(2) +  1);
+                    item.setCollection((byte) (item.getCollection() +  1));
                     data = gameKey.getData();
                     break;
                 }

@@ -1,3 +1,4 @@
+import given.phigros.GameRecord;
 import given.phigros.PhigrosUser;
 import given.phigros.SongExpect;
 import given.phigros.SongLevel;
@@ -11,33 +12,34 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class B19 {
+    PhigrosUser phigrosUser;
     public static final String[] levels = new String[]{"EZ","HD","IN","AT"};
     private static Image[] ranks;
     private static Image background;
-    private final PhigrosUser user;
     private static final Color[] colorLevel = new Color[] {Color.GREEN,Color.BLUE,Color.RED,Color.GRAY};
     private static Font defaultFont;
     private static final SimpleDateFormat format = new SimpleDateFormat("yyyy年MM月dd日hh时");
-    B19(PhigrosUser user) {
-        this.user = user;
+    B19(PhigrosUser phigrosUser) {
+        this.phigrosUser = phigrosUser;
     }
     public ForwardMessage expectCalc(User user) throws Exception {
-        final var expect = this.user.getExpect();
+        final var expect = phigrosUser.getExpect();
         ForwardMessageBuilder builder = new ForwardMessageBuilder(user);
         for (SongExpect songExpect:expect) {
             builder.add(user,new PlainText(String.format("%s %s\nnow：%.3f\nexpect：%.3f",songExpect.name,levels[songExpect.level],songExpect.acc,songExpect.expect)));
         }
         return builder.build();
     }
-    public byte[] b19Pic() throws Exception {
-        final var b19 = user.getB19();
-        System.out.println(System.currentTimeMillis());
+    public byte[] b19Pic() throws IOException, InterruptedException, ExecutionException, FontFormatException {
+        final var b19 = phigrosUser.getB19();
         if (defaultFont == null) {
             try (InputStream inputStream = MyPlugin.INSTANCE.getResourceAsStream("ukai.ttc")) {
                 defaultFont = Font.createFont(Font.TRUETYPE_FONT,inputStream).deriveFont(40f);
@@ -87,15 +89,12 @@ public class B19 {
         int[] xs = new int[] {xBlank,(imageWidth+xBlank)/2};
         Image[] illustrations = new Image[20];
         Future<Image>[] futures = new Future[20];
-        System.out.println("start");
-        System.out.println(System.currentTimeMillis());
         for (int i = 0; i < 20; i++) {
             futures[i] = scheduler.async(new IllustrationCallback(b19[i].id));
         }
         for (int i = 0; i < 20; i++) {
             illustrations[i] = futures[i].get();
         }
-        System.out.println(System.currentTimeMillis());
         for (int x = 0; x < 2; x++) {
             for (int y = 0; y < 10; y++) {
                 drawer.setPoint(xs[x],offset+y*(height+yBlank));
@@ -139,7 +138,6 @@ public class B19 {
                 drawer.drawString(String.format(" %.3f%%", songLevel.acc),illustrationWidth+height,height*2/3+40);
             }
         }
-        System.out.println(System.currentTimeMillis());
         g2d.setComposite(defaultComposite);
         g2d.setColor(Color.BLACK);
         g2d.fillRect(imageWidth/2-150,offset+10*(height+yBlank)+yBlank,300,50);

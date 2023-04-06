@@ -5,14 +5,14 @@ plugins {
 }
 
 group 'given'
-version '0.0.4'
+version '0.4'
+
+mirai.jvmTarget = JavaVersion.VERSION_11
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    implementation 'com.alibaba.fastjson2:fastjson2:2.0.26'
+    implementation project(':PhigrosLibrary')
 }
-
-mirai.jvmTarget = JavaVersion.VERSION_11

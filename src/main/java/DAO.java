@@ -19,7 +19,9 @@ public class DAO {
     }
     public final HashMap<Long, PhigrosUser> users;
     private DAO() throws IOException {
-        PhigrosUser.readInfo(MyPlugin.INSTANCE.resolveDataPath(Path.of("info.csv")));
+        try (final var reader = Files.newBufferedReader(MyPlugin.INSTANCE.resolveDataPath(Path.of("info.csv")))) {
+            PhigrosUser.readInfo(reader);
+        }
         users = readUser();
     }
     private HashMap<Long, PhigrosUser> readUser() throws IOException {
