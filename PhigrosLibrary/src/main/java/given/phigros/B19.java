@@ -197,7 +197,7 @@ public class B19 implements Iterable<String> {
 
     private int getInt() {
         dataPosition += 4;
-        return data[dataPosition - 1] << 24 + data[dataPosition - 2] << 16 + data[dataPosition - 3] << 8 + data[dataPosition - 4];
+        return Byte.toUnsignedInt(data[dataPosition - 1]) << 24 ^ Byte.toUnsignedInt(data[dataPosition - 2]) << 16 ^ Byte.toUnsignedInt(data[dataPosition - 3]) << 8 ^ Byte.toUnsignedInt(data[dataPosition - 4]);
     }
 
     private float getFloat() {
@@ -227,7 +227,7 @@ public class B19 implements Iterable<String> {
         @Override
         public String next() {
             var length = data[position++];
-            String id = new String(data, position, length - 2);
+            final var id = new String(data, position, length - 2);
             position += length;
             length = data[position++];
             dataPosition = position;
