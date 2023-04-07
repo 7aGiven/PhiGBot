@@ -3,17 +3,12 @@ package given.phigros;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -44,9 +39,13 @@ public class PhigrosUser {
             String[] line = lineString.split(",");
             SongInfo songInfo = new SongInfo();
             songInfo.name = line[1];
-            for (int i = 2; i < line.length; i++) {
-                songInfo.level[i-2] = Float.parseFloat(line[i]);
+            if (line.length != 5 && line.length != 6)
+                throw new RuntimeException(String.format("曲目%s的定数数量错误。",songInfo.name));
+            final var difficulty = new float[line.length - 2];
+            for (int i = 0; i < line.length - 2; i++) {
+                difficulty[i] = Float.parseFloat(line[i + 2]);
             }
+            songInfo.level = difficulty;
             info.put(line[0],songInfo);
         }
     }
@@ -60,33 +59,22 @@ public class PhigrosUser {
         SaveManager.save(session);
     }
     public SongLevel[] getB19() throws IOException, InterruptedException {
-        return getGameRecord().getB19();
+        return new B19(extractZip("gameRecord")).getB19();
     }
-//    private SongLevel[] b19(byte[] data) {
-//        final var b19 = new SongLevel[20];
-//        final var reader = ByteBuffer.wrap(data);
-//        reader.position(Util.getBit(data[0],7) ? 2 : 1);
-//        byte length = reader.get();
-//        String id = new String(data, reader.position(), length - 2);
-//        reader.position(reader.position() + length + 1);
-//        length = reader.get();
-//        int fc = reader.get();
-//        for (int i = 0; i < 4; i++) {
-//            if (Util.getBit(length, i)) {
-//
-//            }
-//        }
-//        int start;
-//        while (position != data.length){
-//            start = position;
-//            position += data[position] + 1;
-//            position += data[position] + 1;
-//            byte[] tmp = new byte[position - start];
-//            System.arraycopy(data, start, tmp, 0, position - start);
-//        }
-//    }
     public SongExpect[] getExpect() throws IOException, InterruptedException {
-        return getGameRecord().getExpect();
+        return new B19(extractZip("gameRecord")).getExpect();
+    }
+    private int min(SongLevel[] array) {
+        int index = -1;
+        double min = 17;
+        for (int i = 1; i < 20; i++) {
+            if (array[i].rks == 0f) return i;
+            if (array[i].rks < min) {
+                index = i;
+                min = array[i].rks;
+            }
+        }
+        return index;
     }
     public GameRecord getGameRecord() throws IOException, InterruptedException {
         return new GameRecord(extractZip("gameRecord"));
