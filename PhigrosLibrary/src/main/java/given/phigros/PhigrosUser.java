@@ -8,7 +8,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -16,7 +16,7 @@ public class PhigrosUser {
     public String session;
     URI zipUrl;
     public long time;
-    public final static HashMap<String,SongInfo> info = new HashMap<>();
+    public final static TreeMap<String,SongInfo> info = new TreeMap<>();
     public PhigrosUser(String session) {
         if (!session.matches("[a-z0-9]{25}"))
             throw new RuntimeException("SessionToken格式错误。");
@@ -45,7 +45,7 @@ public class PhigrosUser {
             for (int i = 0; i < line.length - 2; i++) {
                 difficulty[i] = Float.parseFloat(line[i + 2]);
             }
-            songInfo.level = difficulty;
+            songInfo.levels = difficulty;
             info.put(line[0],songInfo);
         }
     }
@@ -62,7 +62,7 @@ public class PhigrosUser {
         return new B19(extractZip("gameRecord")).getB19();
     }
     public SongExpect[] getExpect() throws IOException, InterruptedException {
-        return new B19(extractZip("gameRecord")).getExpect();
+        return new B19(extractZip("gameRecord")).getExpects();
     }
     private int min(SongLevel[] array) {
         int index = -1;

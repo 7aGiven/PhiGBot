@@ -53,7 +53,7 @@ public class GameRecordItem implements Iterable<SongLevel> {
             fc = data[data[0] + 3];
             reader = ByteBuffer.wrap(data,data[0] + 4, data.length - data[0] - 4);
             reader.order(ByteOrder.LITTLE_ENDIAN);
-            difficulty = PhigrosUser.getInfo(id).level;
+            difficulty = PhigrosUser.getInfo(id).levels;
         }
         @Override
         public boolean hasNext() {
