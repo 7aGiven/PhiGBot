@@ -1,15 +1,24 @@
 package given.phigros;
 
 public class Util {
-    static boolean getBit(byte data, int index) {return (data & 1 << index) != 0;}
+    static int pow(int num, int power) {
+        var sum = 1;
+        for (; power > 0; power--) {
+            sum *= num;
+        }
+        return sum;
+    }
+    static boolean getBit(byte data, int index) {
+        return (data & 1 << index) != 0;
+    }
     static byte modifyBit(byte data, int index, boolean b) {
         byte result = (byte)(1 << index);
         if (b) {
-            result |= data;
+            data |= result;
         } else {
-            result &= (~result);
+            data &= (~result);
         }
-        return result;
+        return data;
     }
     static byte[] modifyBytes(byte[] src, int offset, int length, byte[] dst) {
         byte[] data = new byte[src.length + dst.length - length];
@@ -17,13 +26,6 @@ public class Util {
         System.arraycopy(dst, 0, data, offset, dst.length);
         System.arraycopy(src, offset + length, data, offset + dst.length, src.length - offset - length);
         return data;
-    }
-    static int readVarShort(byte[] data, int offset) {
-        if(Util.getBit(data[offset],7)) {
-            return data[offset + 1] * 128 + data[offset] - 128;
-        } else {
-            return data[offset];
-        }
     }
     static byte[] getVarShort(int num) {
         if (num < 128)

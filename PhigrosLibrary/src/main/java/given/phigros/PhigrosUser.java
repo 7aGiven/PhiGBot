@@ -23,9 +23,8 @@ public class PhigrosUser {
         this.session = session;
     }
     public PhigrosUser(URI zipUrl) {this.zipUrl = zipUrl;}
-    public String update() throws IOException, InterruptedException {
-        final var summary = SaveManager.update(this);
-        return summary;
+    public Summary update() throws IOException, InterruptedException {
+        return new Summary(SaveManager.update(this));
     }
     public static void readInfo(BufferedReader reader) throws IOException {
         info.clear();
@@ -104,7 +103,7 @@ public class PhigrosUser {
         }
         return SaveManager.decrypt(buffer);
     }
-    private byte[] getData() throws IOException, InterruptedException {
+    public byte[] getData() throws IOException, InterruptedException {
         HttpResponse<byte[]> response = SaveManager.client.send(HttpRequest.newBuilder(zipUrl).build(),HttpResponse.BodyHandlers.ofByteArray());
         if (response.statusCode() == 404) throw new RuntimeException("存档文件不存在");
         return response.body();

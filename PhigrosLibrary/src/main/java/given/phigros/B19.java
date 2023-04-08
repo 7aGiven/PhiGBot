@@ -4,14 +4,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 
-public class B19 implements Iterable<String> {
+class B19 implements Iterable<String> {
     private final byte[] data;
-    private int dataPosition;
+    private final ByteReader reader;
     private byte length;
     private byte fc;
 
     B19(byte[] data) {
         this.data = data;
+        reader = new ByteReader(data);
     }
 
     SongLevel[] getB19() {
@@ -27,15 +28,15 @@ public class B19 implements Iterable<String> {
             }
             if (++level == levels.length)
                 continue;
-            length = data[dataPosition++];
-            fc = data[dataPosition++];
+            length = reader.getByte();
+            fc = reader.getByte();
             go(level);
             for (; level < levels.length; level++) {
                 if (levelNotExist(level))
                     continue;
                 final var songLevel = new SongLevel();
-                songLevel.score = getInt();
-                songLevel.acc = getFloat();
+                songLevel.score = reader.getInt();
+                songLevel.acc = reader.getFloat();
                 if (songLevel.acc < 70f)
                     continue;
                 if (songLevel.score == 1000000) {
@@ -65,18 +66,18 @@ public class B19 implements Iterable<String> {
                 continue;
             final float minRks = getMinRks();
             final var info = PhigrosUser.getInfo(id);
-            length = data[dataPosition];
-            dataPosition += 2;
+            length = reader.getByte();
+            reader.position++;
             final var list = new ArrayList<SongExpect>();
             for (var level = 0; level < info.levels.length; level++) {
                 if (levelNotExist(level))
                     continue;
                 if (info.levels[level] <= minRks)
                     continue;
-                final int score = getInt();
+                final int score = reader.getInt();
                 if (score == 1000000)
                     continue;
-                final float acc = getFloat();
+                final float acc = reader.getFloat();
                 final var expect = (float) Math.sqrt(minRks / info.levels[level]) * 45f + 55f;
                 if (expect > acc)
                     list.add(new SongExpect(id, info.name, level, acc, expect));
@@ -98,16 +99,16 @@ public class B19 implements Iterable<String> {
             }
             if (++level == levels.length)
                 continue;
-            length = data[dataPosition];
-            dataPosition += 2;
+            length = reader.getByte();
+            reader.position++;
             go(level);
             for (; level < levels.length; level++) {
                 if (levelNotExist(level))
                     continue;
-                final int score = getInt();
+                final int score = reader.getInt();
                 if (score == 1000000)
                     continue;
-                final float acc = getFloat();
+                final float acc = reader.getFloat();
                 final var expect = (float) Math.sqrt(minRks / levels[level]) * 45f + 55f;
                 if (expect > acc)
                     list.add(new SongExpect(id, info.name, level, acc, expect));
@@ -130,14 +131,14 @@ public class B19 implements Iterable<String> {
             }
             if (++level == levels.length)
                 continue;
-            length = data[dataPosition];
-            dataPosition += 2;
+            length = reader.getByte();
+            reader.position++;
             go(level);
             for (; level < levels.length; level++) {
                 if (levelNotExist(level))
                     continue;
-                final var score = getInt();
-                final var acc = getFloat();
+                final var score = reader.getInt();
+                final var acc = reader.getFloat();
                 if (acc < 70f)
                     continue;
                 float rks;
@@ -187,7 +188,7 @@ public class B19 implements Iterable<String> {
     private void go(int index) {
         for (int i = 0; i < index; i++) {
             if (Util.getBit(length, i))
-                dataPosition += 8;
+                reader.position += 8;
         }
     }
 
@@ -195,14 +196,6 @@ public class B19 implements Iterable<String> {
         return !Util.getBit(length, level);
     }
 
-    private int getInt() {
-        dataPosition += 4;
-        return Byte.toUnsignedInt(data[dataPosition - 1]) << 24 ^ Byte.toUnsignedInt(data[dataPosition - 2]) << 16 ^ Byte.toUnsignedInt(data[dataPosition - 3]) << 8 ^ Byte.toUnsignedInt(data[dataPosition - 4]);
-    }
-
-    private float getFloat() {
-        return Float.intBitsToFloat(getInt());
-    }
 
     boolean getFC(int index) {
         return Util.getBit(fc, index);
@@ -230,7 +223,7 @@ public class B19 implements Iterable<String> {
             final var id = new String(data, position, length - 2);
             position += length;
             length = data[position++];
-            dataPosition = position;
+            reader.position = position;
             position += length;
             return id;
         }

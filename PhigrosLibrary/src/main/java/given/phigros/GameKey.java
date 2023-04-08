@@ -38,9 +38,9 @@ public class GameKey implements Iterable<GameKeyItem> {
         try (var outputStream = new ByteArrayOutputStream()) {
             outputStream.writeBytes(Util.getVarShort(array.length + list.size()));
             for (int position = 0; position != array.length; position++)
-                outputStream.writeBytes(array[position].data);
+                outputStream.writeBytes(array[position].reader.data);
             for (int position = 0; position != list.size(); position++)
-                outputStream.writeBytes(list.get(position).data);
+                outputStream.writeBytes(list.get(position).reader.data);
             outputStream.writeBytes(Util.getVarShort(version));
             return outputStream.toByteArray();
         }

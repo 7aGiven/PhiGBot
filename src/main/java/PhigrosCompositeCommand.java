@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
@@ -32,13 +34,7 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
     }
     private String update(PhigrosUser user) throws Exception {
         final var summary = user.update();
-        System.out.println(summary);
-        ByteBuffer byteBuffer = ByteBuffer.wrap(Base64.getDecoder().decode(summary));
-        byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        byteBuffer.position(1);
-        int challenge = byteBuffer.getShort();
-        float rks = byteBuffer.getFloat();
-        return String.format("%.4f\n%s%d",rks,challenges[challenge/100],challenge%100);
+        return String.format("%.4f\n%s%d", summary.rks,challenges[summary.challenge/100],summary.challenge%100);
     }
     @SubCommand
     @Description("B19图")
@@ -56,6 +52,23 @@ public final class PhigrosCompositeCommand extends JCompositeCommand {
         String summary = update(sender.myUser);
         sender.sendMessage(summary);
         sender.sendMessage(new B19(sender.myUser).expectCalc(sender.user));
+    }
+    @SubCommand
+    @Description("备份")
+    public void backup(CommandContext context) throws Exception {
+        SenderFacade sender = new SenderFacade(context);
+        update(sender.myUser);
+        Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d.zip",sender.user.getId())).toPath();
+        Files.write(path,sender.myUser.getData(), StandardOpenOption.CREATE,StandardOpenOption.WRITE);
+        sender.sendMessage("备份成功");
+    }
+    @SubCommand
+    @Description("恢复备份")
+    public void restore(CommandContext context) throws Exception {
+        SenderFacade sender = new SenderFacade(context);
+        Path path = MyPlugin.INSTANCE.resolveDataFile(String.format("backup/%d.zip",sender.user.getId())).toPath();
+        sender.myUser.uploadZip(path);
+        sender.sendMessage("恢复成功");
     }
     @SubCommand
     @Description("改data")

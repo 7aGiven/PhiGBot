@@ -26,7 +26,7 @@ public class GameRecord implements Iterable<GameRecordItem> {
         try (var outputStream = new ByteArrayOutputStream()) {
             outputStream.writeBytes(Util.getVarShort(array.length));
             for (int position = 0; position != array.length; position++)
-                outputStream.writeBytes(array[position].data);
+                outputStream.writeBytes(array[position].reader.data);
             return outputStream.toByteArray();
         }
     }

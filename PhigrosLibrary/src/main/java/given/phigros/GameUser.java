@@ -1,9 +1,9 @@
 package given.phigros;
 
 public class GameUser {
-    private final byte[] data;
+    private final ByteReader reader;
     GameUser(byte[] data) {
-        this.data = data;
+        reader = new ByteReader(data);
     }
     public String getIntroduction() {
         return getItem(0);
@@ -15,10 +15,10 @@ public class GameUser {
         return getItem(2);
     }
     private String getItem(int index) {
-        int num = 1;
-        for (int i = 0; i < index; i++) {
-            num += data[num] + 1;
+        reader.position = 1;
+        for (var i = 0; i < index; i++) {
+            reader.skipString();
         }
-        return new String(data, num + 1, data[num]);
+        return reader.getString();
     }
 }
