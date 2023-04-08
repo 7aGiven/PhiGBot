@@ -5,7 +5,24 @@
 
 至Phigros 2.5.1
 
-开发者引用jar请移步项目PhigrosLibrary
+### Java开发者使用PhigrosLibrary
+
+下载项目源码
+
+复制PhigrosLibrary目录到您的项目根目录
+
+在您的项目根目录的settings.gradle添加一行
+
+`include 'PhigrosLibrary'`
+
+在需要引用PhigrosLibrary的项目的build.gradle里修改 dependencies
+
+```groovy
+dependencies {
+    implementation project(':PhigrosLibrary')
+}
+```
+
 ### 功能
 绘制B19成绩图
 
