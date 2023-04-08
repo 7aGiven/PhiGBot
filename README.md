@@ -1,6 +1,6 @@
 项目不再更新，请移步新项目
 
-[PhigrosLibrary]("https://github.com/7aGiven/PhigrosLibrary")
+[PhigrosLibrary](https://github.com/7aGiven/PhigrosLibrary)
 
 
 # PhigrosBot
