@@ -46,6 +46,14 @@ class ByteReader {
         position += 4;
     }
 
+    float getFloat() {
+        return Float.intBitsToFloat(getInt());
+    }
+
+    void putFloat(float num) {
+        putInt(Float.floatToIntBits(num));
+    }
+
     short getVarShort() {
         if(Util.getBit(data[position],7)) {
             position += 2;
@@ -60,14 +68,6 @@ class ByteReader {
             position += 2;
         else
             position++;
-    }
-
-    float getFloat() {
-        return Float.intBitsToFloat(getInt());
-    }
-
-    void putFloat(float num) {
-        putInt(Float.floatToIntBits(num));
     }
 
     String getString() {
