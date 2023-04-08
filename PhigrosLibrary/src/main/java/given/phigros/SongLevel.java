@@ -15,5 +15,7 @@ public class SongLevel implements Comparable<SongLevel>{
         this.difficulty = difficulty;
     }
     @Override
-    public int compareTo(SongLevel songLevel) {return Double.compare(songLevel.rks, rks);}
+    public int compareTo(SongLevel songLevel) {
+        return Double.compare(songLevel.rks, rks);
+    }
 }

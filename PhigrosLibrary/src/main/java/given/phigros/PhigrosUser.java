@@ -76,6 +76,9 @@ public class PhigrosUser {
     public void modifySong(String songId,int level,int s,float a,boolean fc) throws Exception {
         ModifyStrategyImpl.song(this,songId,level,s,a,fc);
     }
+    public void modify(String type, ModifyStrategy strategy) throws IOException, InterruptedException {
+        SaveManager.modify(this, ModifyStrategyImpl.challengeScore, type, strategy);
+    }
     public void downloadZip(Path path) throws IOException, InterruptedException {
         Files.write(path,getData());
     }
