@@ -29,8 +29,8 @@ class ByteReader {
     }
 
     void putShort(short num) {
-        data[position++] = (byte) (num % 256);
-        data[position++] = (byte) (num / 256);
+        data[position++] = (byte) num;
+        data[position++] = (byte) (num >>> 8);
     }
 
     int getInt() {
